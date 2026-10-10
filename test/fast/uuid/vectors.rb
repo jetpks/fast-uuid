@@ -23,6 +23,26 @@ describe "RFC 9562 Appendix A test vectors" do
     end
   end
 
+  # A.1 and A.5 share every field but the timestamp's wire order: the same
+  # time, clock sequence and node generate both.
+  describe "the v1 and v6 vectors, generated" do
+    it "generates the v1 vector from the shared fields" do
+      uuid = Fast::UUID.v1(time: Time.utc(2022, 2, 22, 19, 22, 22), clock_sequence: 0x33C8, node: 0x9F6BDECED846)
+      expect(uuid.to_s).to be(:==, "c232ab00-9414-11ec-b3c8-9f6bdeced846")
+      expect(uuid.version).to be(:==, 1)
+      expect(uuid.variant).to be(:==, :rfc9562)
+      expect(uuid.timestamp).to be(:==, Time.utc(2022, 2, 22, 19, 22, 22))
+    end
+
+    it "generates the v6 vector from the same fields, timestamp reordered" do
+      uuid = Fast::UUID.v6(time: Time.utc(2022, 2, 22, 19, 22, 22), clock_sequence: 0x33C8, node: 0x9F6BDECED846)
+      expect(uuid.to_s).to be(:==, "1ec9414c-232a-6b00-b3c8-9f6bdeced846")
+      expect(uuid.version).to be(:==, 6)
+      expect(uuid.variant).to be(:==, :rfc9562)
+      expect(uuid.timestamp).to be(:==, Time.utc(2022, 2, 22, 19, 22, 22))
+    end
+  end
+
   # A.2 and A.4 are the DNS namespace and the name "www.example.com": the
   # name-based versions generate them, not just parse them.
   describe "the v3 and v5 vectors, generated" do

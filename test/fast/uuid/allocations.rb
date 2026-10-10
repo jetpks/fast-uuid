@@ -6,9 +6,9 @@ require "fast/uuid"
 # operation costs in Ruby objects beyond the UUID itself. Counts are
 # GC.stat, exact and the same on every platform. Everything a measured
 # block touches is a local: a `let` costs an object per read. Measured on
-# Ruby 4.0.7, then frozen: parse 6, v4 12, v7 12, v3 17 and v5 16, to_s
-# and the comparisons 0, hex and urn 1, the v7 timestamp 2 and the v1
-# timestamp 10.
+# Ruby 4.0.7, then frozen: parse 6, v4 12, v7 12, v1 16 and v6 11, v3 17
+# and v5 16, to_s and the comparisons 0, hex and urn 1, the v7 timestamp 2
+# and the v1 timestamp 10.
 describe "allocations" do
   # Objects allocated per run of the block, averaged over +times+ runs so a
   # one-off allocation outside the block (GC.stat's own, under coverage)
@@ -33,6 +33,24 @@ describe "allocations" do
   it "generates v7 in twelve objects" do
     Fast::UUID.v7
     expect(allocations { Fast::UUID.v7 }).to be(:<, 13)
+  end
+
+  it "generates v1 in at most sixteen objects" do
+    # The now Time, the node's random bytes and their hex, the clock
+    # sequence's bytes, the two words in their Array and the packed bytes,
+    # then the value object's binary copy and canonical form. v1's time_low
+    # word crosses the immediate-Integer line whenever its top bits are set
+    # — a phase that cycles with the clock — and 16 is that high phase; the
+    # low phase costs five fewer and stays under the budget.
+    Fast::UUID.v1
+    expect(allocations { Fast::UUID.v1 }).to be(:<, 17)
+  end
+
+  it "generates v6 in eleven objects" do
+    # The same shape as v1, v6's time_high word staying inside the
+    # immediate-Integers for the next several thousand years.
+    Fast::UUID.v6
+    expect(allocations { Fast::UUID.v6 }).to be(:<, 12)
   end
 
   it "generates v3 in seventeen objects" do

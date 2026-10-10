@@ -63,6 +63,67 @@ describe Fast::UUID do
     end
   end
 
+  describe ".v1 and .v6" do
+    let(:time) { Time.utc(2022, 2, 22, 19, 22, 22) }
+
+    it "generates versions 1 and 6 with the 10xx variant" do
+      v1 = Fast::UUID.v1(time: time)
+      expect(canonical?(v1)).to be(:==, true)
+      expect(v1.version).to be(:==, 1)
+      expect(v1.variant).to be(:==, :rfc9562)
+      v6 = Fast::UUID.v6(time: time)
+      expect(canonical?(v6)).to be(:==, true)
+      expect(v6.version).to be(:==, 6)
+      expect(v6.variant).to be(:==, :rfc9562)
+    end
+
+    it "carries the injected time to the 100-ns tick grid, finer than v7's millisecond" do
+      sub_second = Time.at(time.to_i, 123_456_700, :nanosecond)
+      expect(Fast::UUID.v1(time: sub_second).timestamp).to be(:==, sub_second)
+      expect(Fast::UUID.v6(time: sub_second).timestamp).to be(:==, sub_second)
+    end
+
+    it "is fully determined by the injected arguments, node and clock sequence included" do
+      fields = { time: time, clock_sequence: 0x33C8, node: 0x9F6BDECED846 }
+      expect(Fast::UUID.v1(**fields)).to be(:==, Fast::UUID.v1(**fields))
+      expect(Fast::UUID.v6(**fields)).to be(:==, Fast::UUID.v6(**fields))
+    end
+
+    it "masks an injected node to 48 bits and a clock sequence to 14" do
+      v1 = Fast::UUID.v1(time: time, node: 0xFFFFFFFFFFFFFFFF, clock_sequence: 0xFFFF)
+      expect(v1.hex[16, 20]).to be(:==, "bfffffffffffffff")
+    end
+
+    it "defaults the node to a multicast-marked CSPRNG value and the clock sequence to random" do
+      # The multicast bit is the LSB of the node's first octet, octet 10.
+      expect(Fast::UUID.v1(time: time).bytes.getbyte(10) & 1).to be(:==, 1)
+      expect(Fast::UUID.v6(time: time).bytes.getbyte(10) & 1).to be(:==, 1)
+    end
+
+    it "gives distinct UUIDs to consecutive default generations" do
+      %i[v1 v6].each do |version|
+        many = Array.new(1000) { Fast::UUID.public_send(version) }
+        expect(many.map(&:to_s).uniq.length).to be(:==, 1000)
+      end
+    end
+
+    it "raises TypeError for a node that is neither Integer nor a 6-byte String" do
+      %i[v1 v6].each do |version|
+        [4.2, "00" * 5, ["9f6bdeced846"], :multicast].each do |node|
+          expect { Fast::UUID.public_send(version, node: node) }.to raise_exception(::TypeError)
+        end
+      end
+    end
+
+    it "raises TypeError for a non-Integer clock_sequence" do
+      %i[v1 v6].each do |version|
+        ["0", 4.2, [0x33C8]].each do |clock_sequence|
+          expect { Fast::UUID.public_send(version, clock_sequence: clock_sequence) }.to raise_exception(::TypeError)
+        end
+      end
+    end
+  end
+
   describe ".v3 and .v5" do
     def generated(version, namespace = Fast::UUID::NAMESPACE_DNS, name = "www.example.com")
       Fast::UUID.public_send(version, namespace, name)
@@ -107,7 +168,7 @@ describe Fast::UUID do
 
   it "generates distinct well-formed UUIDs across threads" do
     uuids = Array.new(8) do
-      Thread.new { Array.new(250) { Fast::UUID.v7 } }
+      Thread.new { Array.new(250) { [Fast::UUID.v7, Fast::UUID.v1, Fast::UUID.v6].sample } }
     end.flat_map(&:value)
     expect(uuids.map(&:to_s).uniq.length).to be(:==, 2_000)
     expect(uuids.all? { |uuid| canonical?(uuid) }).to be(:==, true)

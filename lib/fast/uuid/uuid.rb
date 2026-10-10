@@ -4,9 +4,9 @@ require "digest"
 require "securerandom"
 
 module Fast
-  # An immutable, frozen RFC 9562 UUID value: generate v4/v7 and name-based
-  # v3/v5, parse and validate every version and variant, compare as an
-  # opaque 128-bit value.
+  # An immutable, frozen RFC 9562 UUID value: generate v4/v7, time-based
+  # v1/v6 and name-based v3/v5, parse and validate every version and
+  # variant, compare as an opaque 128-bit value.
   class UUID
     include Comparable
 
@@ -37,6 +37,65 @@ module Fast
       high = (milliseconds << 16) | 0x7000 | (high & 0x0FFF)
       low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
       new([high, low].pack("Q> Q>"))
+    end
+
+    # The 60-bit 100-ns Gregorian timestamp both time-based versions
+    # encode, masked to the field the way v7 masks unix_ts_ms.
+    def self.gregorian_ticks(time)
+      ((time.to_i * 10_000_000) + (time.nsec / 100) + GREGORIAN_OFFSET) & 0xFFFFFFFFFFFFFFF
+    end
+
+    # The node: nil draws a fresh CSPRNG value with the multicast bit set
+    # (RFC §6.10), an Integer masks to 48 bits, a 6-byte String unpacks.
+    # The 48 bits travel as hex — a Q> would land past the immediate
+    # Integers three times in four and cost an object when it does.
+    def self.node_id(node)
+      case node
+      when nil
+        SecureRandom.bytes(6).unpack1("H12").to_i(16) | (1 << 40)
+      when Integer
+        node & 0xFFFFFFFFFFFF
+      when String
+        raise TypeError, "a 6-byte node String is required (got #{node.bytesize} bytes)" unless node.bytesize == 6
+
+        node.b.unpack1("H12").to_i(16)
+      else
+        raise TypeError, "an Integer or 6-byte String node is required (got #{node.class})"
+      end
+    end
+
+    # The low word v1 and v6 share: the 10xx variant over the 14-bit
+    # clock_seq, then the 48-bit node. A nil clock_sequence draws a fresh
+    # CSPRNG value, as v4 draws its bits.
+    def self.sequence_low(node, clock_sequence)
+      unless clock_sequence.nil? || clock_sequence.is_a?(Integer)
+        raise TypeError, "an Integer clock_sequence is required (got #{clock_sequence.class})"
+      end
+
+      clock_sequence = SecureRandom.bytes(2).unpack1("n") & 0x3FFF if clock_sequence.nil?
+      0x8000000000000000 | ((clock_sequence & 0x3FFF) << 48) | node_id(node)
+    end
+
+    private_class_method :gregorian_ticks, :node_id, :sequence_low
+
+    # The 60-bit Gregorian timestamp split least-significant-first:
+    # time_low, then time_mid, then time_hi under the version nibble 1.
+    # Where possible, prefer v7 (RFC §5.7): v1's least significant field
+    # sits first, so it does not sort chronologically.
+    def self.v1(time: Time.now, node: nil, clock_sequence: nil)
+      ticks = gregorian_ticks(time)
+      high = ((ticks & 0xFFFFFFFF) << 32) | (((ticks >> 32) & 0xFFFF) << 16) | 0x1000 | (ticks >> 48)
+      new([high, sequence_low(node, clock_sequence)].pack("Q> Q>"))
+    end
+
+    # v1's timestamp reordered most-significant-first (RFC §5.6, the v1
+    # migration version): time_high, then time_mid, then time_low under the
+    # version nibble 6. Same node, clock sequence and variant as v1, and it
+    # sorts chronologically where v1 does not.
+    def self.v6(time: Time.now, node: nil, clock_sequence: nil)
+      ticks = gregorian_ticks(time)
+      high = ((ticks >> 28) << 32) | (((ticks >> 12) & 0xFFFF) << 16) | 0x6000 | (ticks & 0xFFF)
+      new([high, sequence_low(node, clock_sequence)].pack("Q> Q>"))
     end
 
     # MD5 over the namespace's 16 bytes followed by the name's, the whole

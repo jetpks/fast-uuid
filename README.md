@@ -1,9 +1,9 @@
 # fast-uuid
 
 RFC 9562 UUIDs for Ruby, pure Ruby with nothing on top of them: generate v4
-and v7, derive deterministic v3 and v5 from a namespace and a name, parse and
-validate every version and variant, and compare UUIDs as the opaque 128-bit
-values they are.
+and v7, the time-based v1 and v6, derive deterministic v3 and v5 from a
+namespace and a name, parse and validate every version and variant, and
+compare UUIDs as the opaque 128-bit values they are.
 
 It is not a replacement for anything already on your load path, because
 there is nothing there to replace. `securerandom` ships `uuid_v4` and
@@ -71,7 +71,7 @@ the allocation columns and how to reproduce on the
 
 ### How-to guides
 
-- [How to generate deterministic UUIDs for tests](docs/how-to/generate-deterministic-uuids-for-tests.md) — pin a v7 to an exact millisecond with `v7(time:)`, or derive a stable v5 from a namespace and name.
+- [How to generate deterministic UUIDs for tests](docs/how-to/generate-deterministic-uuids-for-tests.md) — pin a v7 to an exact millisecond with `v7(time:)`, pin a v1 or v6 to the 100-ns tick, or derive a stable v5 from a namespace and name.
 - [How to validate untrusted input](docs/how-to/validate-untrusted-input.md) — what `parse?` and `valid?` return, and what `parse` raises.
 - [How to sort UUIDs correctly](docs/how-to/sort-uuids-correctly.md) — `<=>` byte order, and the v1 caveat.
 - [How to store a UUID as 16 bytes](docs/how-to/store-a-uuid-as-16-bytes.md) — `bytes` out, `new(bytes)` back.
