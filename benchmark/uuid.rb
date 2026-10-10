@@ -27,15 +27,17 @@ ensure
   GC.enable
 end
 
+# Each fast-uuid operation beside the call it replaces: the String drop-ins
+# first, then the value objects, then parsing.
 operations = {
-  "generate v4, fast-uuid" => -> { Fast::UUID.v4 },
-  "generate v4, securerandom" => -> { SecureRandom.uuid_v4 },
-  "generate v7, fast-uuid" => -> { Fast::UUID.v7 },
-  "generate v7, securerandom" => -> { SecureRandom.uuid_v7 },
-  "uuid_v4 string, fast-uuid" => -> { Fast::UUID.uuid_v4 },
-  "uuid_v7 string, fast-uuid" => -> { Fast::UUID.uuid_v7 },
-  "parse, fast-uuid" => -> { Fast::UUID.parse(SAMPLE) },
-  "parse, uuidtools" => -> { UUIDTools::UUID.parse(SAMPLE) }
+  "Fast::UUID.uuid_v4 => String" => -> { Fast::UUID.uuid_v4 },
+  "SecureRandom.uuid_v4 => String" => -> { SecureRandom.uuid_v4 },
+  "Fast::UUID.uuid_v7 => String" => -> { Fast::UUID.uuid_v7 },
+  "SecureRandom.uuid_v7 => String" => -> { SecureRandom.uuid_v7 },
+  "Fast::UUID.v7 => Fast::UUID" => -> { Fast::UUID.v7 },
+  "Fast::UUID.v4 => Fast::UUID" => -> { Fast::UUID.v4 },
+  "Fast::UUID.parse" => -> { Fast::UUID.parse(SAMPLE) },
+  "UUIDTools::UUID.parse" => -> { UUIDTools::UUID.parse(SAMPLE) }
 }
 
 puts "#{RUBY_DESCRIPTION}; fast-uuid #{Fast::UUID::VERSION}"
@@ -46,10 +48,16 @@ report = Benchmark.ips do |x|
   operations.each { |name, call| x.report(name, &call) }
 end
 
-width = operations.keys.map(&:length).max
+# The doc's results table: operation, comma-grouped i/s, ±% and objects/call.
+def grouped(number)
+  number.round.to_s.gsub(/(\d)(?=(\d{3})+\z)/, "\\1,")
+end
+
+puts "| operation | i/s | ±% | objects/call |"
+puts "|---|---|---|---|"
 report.entries.each do |entry|
-  call = operations.fetch(entry.label)
-  objects = objects_per_call(call)
-  puts format("%<label>-#{width}s %<ips>10.0f i/s ±%<stddev>5.2f%% (%<objects>6.2f objects/call)",
-              label: entry.label, ips: entry.ips, stddev: entry.stats.error / entry.ips * 100, objects: objects)
+  objects = objects_per_call(operations.fetch(entry.label))
+  error = entry.stats.error / entry.ips * 100
+  puts format("| %<label>s | %<ips>s | %<error>.2f | %<objects>.2f |",
+              label: entry.label, ips: grouped(entry.ips), error: error, objects: objects)
 end
