@@ -44,4 +44,4 @@ including the version and variant nibbles. Consequences worth knowing:
 
 If what you need is time order across versions, sort by `timestamp` instead; for a
 single version's worth of v6 or v7, `<=>` already is that sort. The how-to
-[How to sort UUIDs correctly](../how-to/sort-uuids-correctly.md) shows both.
+[How to sort UUIDs](../how-to/sort-uuids-correctly.md) shows both.

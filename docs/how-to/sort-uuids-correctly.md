@@ -1,4 +1,4 @@
-# How to sort UUIDs correctly
+# How to sort UUIDs
 
 Put UUIDs in order with `<=>`, and know when that order is the creation order you
 probably wanted. You need an Array of `Fast::UUID` values — or of anything that stores

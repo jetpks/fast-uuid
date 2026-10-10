@@ -1,9 +1,12 @@
-# How to generate deterministic UUIDs for tests
+# How to generate deterministic UUIDs
 
-Three different kinds of determinism. `v7(time:)` pins a UUID's timestamp so a test can
-assert on it. `v3` and `v5` go further: the same namespace and name give the same UUID
-in every process, on every machine, at any time — nothing is random at all. `v1` and
-`v6` sit between: inject time, node and clock sequence and the UUID is fixed too.
+Three different kinds of determinism. `v7(time:)` pins a UUID's timestamp: the same
+injected time gives the same leading bytes, every run. `v3` and `v5` go further: the
+same namespace and name give the same UUID in every process, on every machine, at any
+time — nothing is random at all. `v1` and `v6` sit between: inject time, node and
+clock sequence and the UUID is fixed too. The examples below use tests to illustrate —
+determinism is just as useful in production, wherever the same input should meet the
+same UUID.
 
 ## Pin a v7 to an exact millisecond
 

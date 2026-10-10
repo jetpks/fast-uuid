@@ -180,7 +180,7 @@ sort where the bits put them: `Fast::UUID::NIL` before every other UUID,
 One caveat the RFC does not decide for you, and the reason a how-to exists: v1 is also
 time-based, but its `time_low` field sits first in the byte string, so v1 UUIDs do not
 sort in time order. Byte order and time order agree for v6 and v7 only. See
-[How to sort UUIDs correctly](../how-to/sort-uuids-correctly.md).
+[How to sort UUIDs](../how-to/sort-uuids-correctly.md).
 
 ## 7. Put it together: a sortable request ID
 
@@ -238,9 +238,9 @@ From here:
 - [How to choose a UUID version](../how-to/choose-a-uuid-version.md) turns the
   version question into a decision.
 - [What a UUID is, and what its versions are](../explanation/uuid-versions.md) is the
-  tour of what the versions are for — and why a UUID is not a sha256sum.
-- [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md)
-  pins a fixture to an exact timestamp and keeps its tail stable.
+  tour of what the versions are for.
+- [How to generate deterministic UUIDs](../how-to/generate-deterministic-uuids-for-tests.md)
+  pins a UUID to an exact timestamp and keeps its tail stable.
 - [How to validate untrusted input](../how-to/validate-untrusted-input.md) covers what
   `parse?` and `valid?` return and what `parse` raises.
 - [Reference: Fast::UUID](../reference/uuid.md) lists the whole surface.

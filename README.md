@@ -84,9 +84,9 @@ the allocation columns and how to reproduce on the
 ### How-to guides
 
 - [How to choose a UUID version](docs/how-to/choose-a-uuid-version.md) — v7 by default, v6 for a v1 fleet, v5 for name-derived determinism, v4 for randomness, v1 for legacy systems.
-- [How to generate deterministic UUIDs for tests](docs/how-to/generate-deterministic-uuids-for-tests.md) — pin a v7 to an exact millisecond with `v7(time:)`, pin a v1 or v6 to the 100-ns tick, or derive a stable v5 from a namespace and name.
+- [How to generate deterministic UUIDs](docs/how-to/generate-deterministic-uuids-for-tests.md) — pin a v7 to an exact millisecond with `v7(time:)`, pin a v1 or v6 to the 100-ns tick, or derive a stable v5 from a namespace and name.
 - [How to validate untrusted input](docs/how-to/validate-untrusted-input.md) — what `parse?` and `valid?` return, and what `parse` raises.
-- [How to sort UUIDs correctly](docs/how-to/sort-uuids-correctly.md) — `<=>` byte order, and the v1 caveat.
+- [How to sort UUIDs](docs/how-to/sort-uuids-correctly.md) — `<=>` byte order, and the v1 caveat.
 - [How to store a UUID as 16 bytes](docs/how-to/store-a-uuid-as-16-bytes.md) — `bytes` out, `new(bytes)` back.
 
 ### Reference

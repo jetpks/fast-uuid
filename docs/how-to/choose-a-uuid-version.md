@@ -25,7 +25,7 @@ is one call and a link to the piece that goes deeper.
    Fast::UUID.v7 # => the current Unix time leads the bytes
    ```
 
-   [How to sort UUIDs correctly](sort-uuids-correctly.md) and
+   [How to sort UUIDs](sort-uuids-correctly.md) and
    [How to store a UUID as 16 bytes](store-a-uuid-as-16-bytes.md) cover the key and
    the column. Migrating a fleet that already issues v1? **v6** is v1's timestamp
    reordered most-significant-first — the same node, clock sequence and 100-ns
@@ -39,7 +39,7 @@ is one call and a link to the piece that goes deeper.
    # => same input, same UUID — no storage, no coordination
    ```
 
-   [How to generate deterministic UUIDs for tests](generate-deterministic-uuids-for-tests.md)
+   [How to generate deterministic UUIDs](generate-deterministic-uuids-for-tests.md)
    shows the fixture and the injection variants. **v3** is the same construction with
    MD5; choose it only to interoperate with a system that already issues v3.
 

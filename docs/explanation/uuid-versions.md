@@ -1,13 +1,11 @@
 # What a UUID is, and what its versions are
 
-A UUID is 128 bits, which is also what a sha256sum is — and the resemblance is where
-most engineers' mental model stops, a few bits too early. A digest is defined by its
-input: the same file hashes to the same output forever, and no bit of the output means
-anything. A UUID is the other way round. Its bits are mostly yours to fill, and the RFC
-assigns meaning to a few of them before you start: a version nibble naming the recipe
-that filled the rest, a variant naming which RFC answers for it, and — for some
-versions — time. A UUID is not a checksum *of* content you already have. It is an
-identifier you *construct*, with properties you choose.
+A UUID is 128 bits, and the RFC assigns meaning to a few of them before you start: a
+version nibble naming the recipe that filled the rest, a variant naming which RFC
+answers for it, and — for some versions — time. The rest are yours. A UUID is not a
+value derived from content you already have; it is an identifier you *construct*, with
+properties you choose — the moment of its creation can travel inside it, its byte
+order can be a timeline, the same name can give the same UUID forever.
 
 This page is the tour of those properties. If you already know the property you need,
 the how-to [How to choose a UUID version](../how-to/choose-a-uuid-version.md) skips it.
@@ -86,14 +84,14 @@ Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com").to_s
 Nothing is random, so nothing needs remembering: no storage, no coordination, no
 registry. The derived ID is a pure function of its input, which is reproducible
 identity in production and a fixture you can assert on in tests
-([How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md)
+([How to generate deterministic UUIDs](../how-to/generate-deterministic-uuids-for-tests.md)
 works this vein).
 
 ## Pure randomness, when that is the ask
 
 v4 draws 122 bits from the CSPRNG; the version nibble and the variant are the only
-structure stamped in. No time, no name, no order — the sha256-shaped mental model,
-except it is one option among five rather than the definition. When all you need is
+structure stamped in. No time, no name, no order — nothing but uniqueness itself, and
+it is one option among five rather than the definition. When all you need is
 uniqueness, v4 is exactly right, and nothing else about it pretends otherwise; when you
 need time order or determinism too, the other versions buy them in the same 128 bits.
 
