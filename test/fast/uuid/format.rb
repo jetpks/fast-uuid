@@ -52,6 +52,25 @@ describe Fast::UUID do
     end
   end
 
+  it "builds from anything carrying the 16 bytes via to_str, and rejects wrong sizes and no to_str" do
+    carrier = Object.new
+    def carrier.to_str
+      Fast::UUID.parse("017f22e2-79b0-7cc3-98c4-dc0c0c07398f").bytes
+    end
+
+    expect(Fast::UUID.new(carrier)).to be(:==, uuid)
+
+    short = Object.new
+    def short.to_str
+      "short"
+    end
+
+    expect { Fast::UUID.new(short) }.to raise_exception(ArgumentError)
+
+    no_bytes = Class.new(BasicObject).new
+    expect { Fast::UUID.new(no_bytes) }.to raise_exception(ArgumentError)
+  end
+
   it "is immutable: the constants and every instance are frozen" do
     expect(Fast::UUID::NIL).to be(:frozen?)
     expect(Fast::UUID::MAX).to be(:frozen?)

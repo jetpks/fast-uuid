@@ -51,9 +51,11 @@ module Fast
     end
 
     # The node: nil draws a fresh CSPRNG value with the multicast bit set
-    # (RFC §6.10), an Integer masks to 48 bits, a 6-byte String unpacks.
-    # The 48 bits travel as hex — a Q> would land past the immediate
-    # Integers three times in four and cost an object when it does.
+    # (RFC §6.10), an Integer-like input masks to 48 bits, a string-like
+    # input unpacks from its 6 binary bytes — the size is the requirement,
+    # not the class. The 48 bits travel as hex — a Q> would land past the
+    # immediate Integers three times in four and cost an object when it
+    # does.
     def self.node_id(node)
       case node
       when nil
@@ -65,19 +67,31 @@ module Fast
 
         node.b.unpack1("H12").to_i(16)
       else
-        raise TypeError, "an Integer or 6-byte String node is required (got #{node.class})"
+        return node.to_int & 0xFFFFFFFFFFFF if defined?(node.to_int)
+        return node_id(node.to_s) if defined?(node.to_s)
+
+        got = defined?(node.class) ? node.class : "a classless object"
+        raise TypeError, "an Integer-like or 6-byte string-like node is required (got #{got})"
       end
     end
 
     # The low word v1 and v6 share: the 14-bit clock_seq over the 48-bit
     # node, the variant's top two bits stamped in place after the pack. A
-    # nil clock_sequence draws a fresh CSPRNG value, as v4 draws its bits.
+    # nil clock_sequence draws a fresh CSPRNG value, as v4 draws its bits;
+    # an Integer-like one masks to 14 bits.
     def self.sequence_low(node, clock_sequence)
-      unless clock_sequence.nil? || clock_sequence.is_a?(Integer)
-        raise TypeError, "an Integer clock_sequence is required (got #{clock_sequence.class})"
-      end
+      clock_sequence = case clock_sequence
+                       when Integer then clock_sequence
+                       when nil then SecureRandom.bytes(2).unpack1("n") & 0x3FFF
+                       else
+                         unless defined?(clock_sequence.to_int)
+                           got = defined?(clock_sequence.class) ? clock_sequence.class : "a classless object"
+                           raise TypeError, "an Integer-like clock_sequence is required (got #{got})"
+                         end
 
-      clock_sequence = SecureRandom.bytes(2).unpack1("n") & 0x3FFF if clock_sequence.nil?
+                         clock_sequence.to_int
+                       end
+
       ((clock_sequence & 0x3FFF) << 48) | node_id(node)
     end
 
@@ -144,16 +158,15 @@ module Fast
     end
 
     # The input of both name-based versions: the namespace's 16 bytes
-    # followed by the name's. A String namespace parses, any other non-UUID
-    # raises TypeError, as does a non-String name.
+    # followed by the name's. A UUID namespace is itself and anything else
+    # string-like parses as one; the name is the String form it carries —
+    # a name has no grammar, every String is one.
     def self.digest_input(namespace, name)
-      raise TypeError, "a String name is required (got #{name.class})" unless name.is_a?(String)
-
-      unless namespace.is_a?(UUID) || namespace.is_a?(String)
-        raise TypeError, "no implicit conversion of #{namespace.class} into Fast::UUID"
-      end
-
-      namespace = parse(namespace) unless namespace.is_a?(UUID)
+      name = implicit_string(name)
+      namespace = case namespace
+                  when UUID then namespace
+                  else parse(namespace)
+                  end
       namespace.bytes + name.b
     end
 
@@ -247,11 +260,22 @@ module Fast
       false
     end
 
-    # From a 16-byte binary String; an encoding tag on the input is
+    # From a 16-byte binary String, or anything carrying one via #to_str,
+    # the implicit String protocol; an encoding tag on the input is
     # normalized to binary, every other ill shape raises ArgumentError.
+    # The probe is defined?, as implicit_string's — a BasicObject
+    # descendant has no #is_a? and must ArgumentError, not NoMethodError.
     def initialize(bytes)
-      unless bytes.is_a?(String) && bytes.bytesize == 16
-        raise ArgumentError, "a 16-byte binary String is required (got #{bytes.class})"
+      bytes = bytes.to_str if defined?(bytes.to_str) && !bytes.is_a?(String)
+
+      case bytes
+      when String
+        unless bytes.bytesize == 16
+          raise ArgumentError, "a 16-byte binary String is required (got #{bytes.bytesize} bytes)"
+        end
+      else
+        got = defined?(bytes.class) ? bytes.class : "a classless object"
+        raise ArgumentError, "a 16-byte binary String is required (got #{got})"
       end
 
       @bytes = bytes.b.freeze

@@ -22,9 +22,10 @@ it back out. You need `#bytes` and `Fast::UUID.new`.
    Fast::UUID.new(uuid.bytes) == uuid # => true
    ```
 
-   Anything else raises `ArgumentError`: a non-String, and a String of any other
-   length. An encoding tag on a 16-byte String is normalized to binary rather than
-   rejected, so a UTF-8 column that happens to hold pure ASCII bytes still round-trips.
+   Anything else raises `ArgumentError`: an input with no `#to_str` to carry the bytes
+   in, and one carrying a String of any other length. An encoding tag on a 16-byte String
+   is normalized to binary rather than rejected, so a UTF-8 column that happens to hold
+   pure ASCII bytes still round-trips.
 
 3. For a value you already hold as text, parse first and store after — one
    canonicalization on the way in:

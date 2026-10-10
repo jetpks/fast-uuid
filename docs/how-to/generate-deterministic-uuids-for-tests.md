@@ -86,8 +86,9 @@ three pinned the UUID is fixed bit for bit, not just its leading digits.
    # => "1ec9414c-232a-6b00-b3c8-9f6bdeced846", A.5 — the same fields, reordered
    ```
 
-2. A node may also be a 6-byte String, the shape a MAC read off the system arrives in;
-   the clock sequence and an Integer node mask to their fields, 14 bits and 48 bits.
+2. A node may also be anything carrying a 6-byte String via `#to_s`, the shape a MAC read
+   off the system arrives in; the clock sequence and the node mask to their fields, 14 bits
+   and 48 bits, from whatever Integer `#to_int` carries.
 
    ```ruby
    node = ["9f6bdeced846"].pack("H*")
