@@ -1,9 +1,10 @@
 # fast-uuid
 
 RFC 9562 UUIDs for Ruby, pure Ruby with nothing on top of them: generate v4
-and v7, the time-based v1 and v6, derive deterministic v3 and v5 from a
-namespace and a name, parse and validate every version and variant, and
-compare UUIDs as the opaque 128-bit values they are.
+and v7 — as frozen value objects or as bare Strings (`Fast::UUID.uuid`,
+`uuid_v4`…`uuid_v7`) — the time-based v1 and v6, derive deterministic v3 and
+v5 from a namespace and a name, parse and validate every version and variant,
+and compare UUIDs as the opaque 128-bit values they are.
 
 It is not a replacement for anything already on your load path, because
 there is nothing there to replace. `securerandom` ships `uuid_v4` and
@@ -27,6 +28,7 @@ gem "fast-uuid"
 require "fast/uuid"
 
 uuid = Fast::UUID.generate            # v7, the RFC's recommended default
+Fast::UUID.uuid_v4                    # => "b4c7b0f1-…", or uuid_v1…uuid_v7 — the object twins' canonical String, object skipped
 Fast::UUID.parse(uuid.to_s) == uuid   # => true, from any conforming String, any case
 Fast::UUID.v4.version                 # => 4
 Fast::UUID.v7.timestamp               # => a UTC Time, the 48-bit unix_ts_ms
@@ -55,11 +57,11 @@ against `securerandom`, parsing against `uuidtools` (Ruby 4.0.7; conditions,
 the allocation columns and how to reproduce on the
 [benchmarks page](docs/explanation/benchmarks.md)):
 
-- Generation is **12.5% behind the stdlib String for v4, 21.5% for v7** —
-  0.64M vs 0.73M i/s for v4, 0.58M vs 0.74M for v7. The CSPRNG dominates both;
-  the value object on top costs four more objects per call and buys parse,
-  compare and timestamp.
-- Parsing is **3x faster than uuidtools with 4.5x fewer objects** — 1.48M vs
+- Generation is **ahead of the stdlib String for v4, within 8% for v7** —
+  0.77M vs 0.74M i/s for v4, 0.69M vs 0.75M for v7, at half or fewer of the
+  objects — and the String forms win outright: `uuid_v4` 0.83M vs 0.74M with a
+  quarter of the objects, `uuid_v7` 0.73M vs 0.75M with two fifths.
+- Parsing is **3x faster than uuidtools with 4.5x fewer objects** — 1.49M vs
   0.48M i/s, 6 objects per call against 27 — because it is a grammar check and
   one `pack`, not a decoded field graph.
 

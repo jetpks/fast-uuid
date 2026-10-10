@@ -13,29 +13,36 @@ Appendix A v7 vector.
 
 Read the two libraries for what they are. `SecureRandom.uuid_v4` and `.uuid_v7` return
 a String and nothing else — 36 characters, no version, no timestamp, no comparison.
-fast-uuid does the same CSPRNG work and then builds a frozen value object from the
-bytes, so its generation is a little slower and allocates a little more, and what it
-buys is everything else in this gem. `UUIDTools::UUID.parse` returns a mutable object
-that carries its decoded fields; fast-uuid's parse is a grammar check and one `pack`,
-and it wins the same way: fewer objects, less work.
+fast-uuid's `uuid_v4` and `uuid_v7` do the same CSPRNG work and return the same String
+shape, with the version and variant bytes masked in place instead of a round trip
+through 64-bit words — and win on both columns. The object constructors build the
+frozen value object on top of the same bytes, and still come out ahead of the stdlib
+String for v4 and within 8% of it for v7, at half or fewer of the objects; what the
+object buys is everything else in this gem. `UUIDTools::UUID.parse` returns a mutable
+object that carries its decoded fields; fast-uuid's parse is a grammar check and one
+`pack`, and it wins the same way: fewer objects, less work.
 
 ## Results
 
 | operation | i/s | ±% | objects/call |
 |---|---|---|---|
-| generate v4, fast-uuid | 639,126 | 1.48 | 12.00 |
-| generate v4, securerandom | 730,574 | 1.42 | 8.00 |
-| generate v7, fast-uuid | 580,796 | 6.92 | 12.02 |
-| generate v7, securerandom | 739,601 | 1.60 | 10.00 |
-| parse, fast-uuid | 1,478,526 | 1.51 | 6.00 |
-| parse, uuidtools | 484,179 | 1.83 | 27.00 |
+| generate v4, fast-uuid | 765,330 | 2.41 | 4.00 |
+| generate v4, securerandom | 739,618 | 1.43 | 8.00 |
+| generate v7, fast-uuid | 690,317 | 1.58 | 6.00 |
+| generate v7, securerandom | 746,937 | 1.47 | 10.00 |
+| uuid_v4 string, fast-uuid | 825,809 | 1.38 | 2.00 |
+| uuid_v7 string, fast-uuid | 726,870 | 2.17 | 4.00 |
+| parse, fast-uuid | 1,489,398 | 3.23 | 6.00 |
+| parse, uuidtools | 477,883 | 3.01 | 27.00 |
 
-Generation is 12.5% behind the stdlib String for v4 and 21.5% for v7: the CSPRNG call
-and the String it returns dominate both, and the value object on top costs four more
-objects — the bytes, the canonical form, the mask arithmetic's temporaries. Parsing is
-where the design difference shows: fast-uuid parses **3x faster than uuidtools with
-4.5x fewer objects**, because the parse is a match against one Regexp and a `pack("H*")`
-rather than an object graph of decoded fields.
+The string constructors are the stdlib's own names and drop-ins for them, and they win
+outright: `uuid_v4` is 11% ahead of `SecureRandom.uuid_v4` with a quarter of the
+objects, `uuid_v7` at parity with two fifths. The object constructors are ahead of the
+stdlib String for v4 and within 8% for v7, at half or fewer of the objects — the value
+object costs three more allocations than the String alone and buys parse, compare and
+timestamp. Parsing is where the design difference shows: fast-uuid parses **3x faster
+than uuidtools with 4.5x fewer objects**, because the parse is a match against one
+Regexp and a `pack("H*")` rather than an object graph of decoded fields.
 
 ## Reproducing
 
@@ -44,17 +51,19 @@ BENCH_QUICK=1 bundle exec ruby benchmark/uuid.rb   # half-second samples, second
 bundle exec ruby benchmark/uuid.rb                 # two-second samples, about a minute
 ```
 
-Both print the `RUBY_DESCRIPTION` and the fast-uuid version, then the six rows in the
+Both print the `RUBY_DESCRIPTION` and the fast-uuid version, then the eight rows in the
 shape of the table above. Numbers move between machines, Ruby versions and runs; treat
 the ratios as the finding and re-measure before quoting anything finer.
 
 ## Key takeaways
 
-- Generation pays the value object's keep: **~0.8–0.9x `SecureRandom`'s String**, for
-  an object that parses, compares, timestamps and round-trips.
+- Generation wins both ways: the `uuid_v4`/`uuid_v7` String forms **beat `SecureRandom`'s
+  own at parity or better, with a quarter to two fifths of the objects**, and the value
+  object on top still lands ahead of the stdlib String for v4, within 8% for v7.
 - Parsing is **3x faster than uuidtools with 4.5x fewer objects** — a grammar check and
   one `pack` against a decoded field graph.
 - Nothing here allocates per-character: every operation's whole footprint is single
   digits of Ruby objects.
-- `securerandom` remains the right call when a String is all you want; fast-uuid's
-  numbers say the value object around it is nearly free.
+- fast-uuid is the right call even when a String is all you want — its `uuid_v4` and
+  `uuid_v7` are drop-ins for the stdlib's own and its numbers say the value object
+  around them is nearly free.

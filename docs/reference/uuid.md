@@ -15,12 +15,19 @@ provenance and version are irrelevant to identity.
 | `valid?(str)` | Boolean | The same grammar, as a check: true for a conforming String, false otherwise. |
 | `new(bytes)` | `Fast::UUID` | Builds from a 16-byte binary String; raises `ArgumentError` otherwise. An encoding tag on a 16-byte input is normalized to binary. |
 | `v1(time: Time.now, node: nil, clock_sequence: nil)` | `Fast::UUID` | The 60-bit 100-ns Gregorian timestamp (baseline 1582-10-15) split least-significant-first, version 1, `10xx` variant. `node` defaults to a fresh CSPRNG value multicast-marked per RFC §6.10, `clock_sequence` to a fresh CSPRNG draw; an Integer `node` masks to 48 bits, a 6-byte String unpacks, an Integer `clock_sequence` masks to 14 bits. v1 does not sort chronologically — its least significant field sits first — so where possible, the RFC says, prefer v7 (§5.7). See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
+| `uuid_v1(time: Time.now, node: nil, clock_sequence: nil)` | `String` | `v1`'s canonical form as a frozen String: the same arguments, the same errors, the value object skipped. |
 | `v3(namespace, name)` | `Fast::UUID` | MD5 over the namespace's 16 bytes followed by the name's, the whole 128-bit digest masked into place: version 3, `10xx` variant. Same namespace and name, same UUID — across processes, machines and years. Where possible, the RFC says, prefer v5 over v3: MD5's collisions are practical. See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
+| `uuid_v3(namespace, name)` | `String` | `v3`'s canonical form as a frozen String: the same arguments, the same errors, the value object skipped. |
 | `v4` | `Fast::UUID` | 122 random bits from the CSPRNG (`SecureRandom`), version 4, `10xx` variant. |
+| `uuid_v4` | `String` | `v4`'s canonical form as a frozen String, the value object skipped — drop-in for `SecureRandom.uuid_v4`. |
 | `v5(namespace, name)` | `Fast::UUID` | SHA-1 over the same input as v3, the leftmost 128 bits of its 160-bit digest (the rightmost 32 discarded) masked into place: version 5, `10xx` variant. Same namespace and name, same UUID. |
+| `uuid_v5(namespace, name)` | `String` | `v5`'s canonical form as a frozen String: the same arguments, the same errors, the value object skipped. |
 | `v6(time: Time.now, node: nil, clock_sequence: nil)` | `Fast::UUID` | v1's timestamp reordered most-significant-first (RFC §5.6, the v1 migration version): the same node, clock sequence, variant and 100-ns resolution as v1, and it sorts chronologically where v1 does not. See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
+| `uuid_v6(time: Time.now, node: nil, clock_sequence: nil)` | `String` | `v6`'s canonical form as a frozen String: the same arguments, the same errors, the value object skipped. |
 | `v7(time: Time.now)` | `Fast::UUID` | 48-bit big-endian `unix_ts_ms` from `time` (sub-millisecond input truncated), version 7, 12-bit `rand_a` and 62-bit `rand_b` fully random — 74 random bits, no counter, no shared state, thread-safe. See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
+| `uuid_v7(time: Time.now)` | `String` | `v7`'s canonical form as a frozen String, the value object skipped — drop-in for `SecureRandom.uuid_v7`. |
 | `generate` | `Fast::UUID` | v7, the RFC's recommended default. |
+| `uuid` | `String` | `generate`'s canonical form as a frozen String — the RFC's recommended default, rendered straight to the 36 characters. |
 
 ## Instance methods
 
@@ -29,7 +36,7 @@ provenance and version are irrelevant to identity.
 | `version` | `Integer` | The version nibble, 0–15, whatever it is: 1 Gregorian time, 3 MD5, 4 random, 5 SHA-1, 6 reordered Gregorian, 7 Unix-epoch time, 8 custom. Unknown versions are reported, not rejected. |
 | `variant` | `Symbol` | `:rfc9562` when the top two bits are `10`, `:ncs` for `0xxx` (holds Nil), `:microsoft` for `110x`, `:future` for `111x` (holds Max). |
 | `timestamp` | `Time` or `nil` | UTC. v1 and v6: the 60-bit 100-ns Gregorian timestamp (baseline 1582-10-15). v7: `unix_ts_ms`. Every other version, nil. |
-| `to_s` / `to_str` | `String` | The canonical form, lowercase 8-4-4-4-12, frozen. `to_str` makes it interchangeable with Strings. |
+| `to_s` / `to_str` | `String` | The canonical form, lowercase 8-4-4-4-12, frozen, US-ASCII (the hex is ASCII-only by construction). `to_str` makes it interchangeable with Strings. |
 | `bytes` | `String` | The 128-bit value as a frozen 16-byte binary String; see [How to store a UUID as 16 bytes](../how-to/store-a-uuid-as-16-bytes.md). |
 | `hex` | `String` | 32 lowercase hex characters, no hyphens. |
 | `urn` | `String` | `"urn:uuid:"` followed by the canonical form. |
@@ -59,5 +66,5 @@ provenance and version are irrelevant to identity.
 |---|---|
 | `Fast::UUID::Error` (`< StandardError`) | The base class of every error this gem raises; rescue it to catch both of the below. |
 | `Fast::UUID::ParseError` (`< Fast::UUID::Error`) | `parse` was given a String that does not conform to the RFC §4 grammar, or `v3`/`v5` a namespace String that does not conform. |
-| `::TypeError` | `parse` was given a non-String, `v3`/`v5` a non-String name or a namespace that is neither a `Fast::UUID` nor a String, or `v1`/`v6` a `node` that is neither an Integer nor a 6-byte String or a `clock_sequence` that is not an Integer. |
+| `::TypeError` | `parse` was given a non-String, `v3`/`v5` (and their `uuid_v3`/`uuid_v5` String forms) a non-String name or a namespace that is neither a `Fast::UUID` nor a String, or `v1`/`v6` (and their `uuid_v1`/`uuid_v6` String forms) a `node` that is neither an Integer nor a 6-byte String or a `clock_sequence` that is not an Integer. |
 | `::ArgumentError` | `new` was given anything but a 16-byte String. |

@@ -6,9 +6,9 @@ require "fast/uuid"
 # operation costs in Ruby objects beyond the UUID itself. Counts are
 # GC.stat, exact and the same on every platform. Everything a measured
 # block touches is a local: a `let` costs an object per read. Measured on
-# Ruby 4.0.7, then frozen: parse 6, v4 12, v7 12, v1 16 and v6 11, v3 17
-# and v5 16, to_s and the comparisons 0, hex and urn 1, the v7 timestamp 2
-# and the v1 timestamp 10.
+# Ruby 4.0.7, then frozen: parse 6, v4 4 and v7 6, uuid_v4 2 and uuid_v7
+# 4, v1 9 and v6 9, v3 8 and v5 9, to_s and the comparisons 0, hex and
+# urn 1, the v7 timestamp 2.
 describe "allocations" do
   # Objects allocated per run of the block, averaged over +times+ runs so a
   # one-off allocation outside the block (GC.stat's own, under coverage)
@@ -19,54 +19,71 @@ describe "allocations" do
     (GC.stat(:total_allocated_objects) - before) / times.to_f
   end
 
-  it "parses in six objects: the dehyphenated text, the bytes, the binary copy, the hex and the canonical form" do
+  it "parses in six objects" do
     string = "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
     Fast::UUID.parse(string)
+    # The dehyphenated text, the packed bytes, the binary copy, the hex and
+    # the canonical form.
     expect(allocations { Fast::UUID.parse(string) }).to be(:<, 7)
   end
 
-  it "generates v4 in twelve objects" do
+  it "generates v4 in four objects" do
     Fast::UUID.v4
-    expect(allocations { Fast::UUID.v4 }).to be(:<, 13)
+    # The random bytes, the binary copy, the hex and the value.
+    expect(allocations { Fast::UUID.v4 }).to be(:<, 5)
   end
 
-  it "generates v7 in twelve objects" do
+  it "generates v7 in six objects" do
     Fast::UUID.v7
-    expect(allocations { Fast::UUID.v7 }).to be(:<, 13)
+    # v4's four, the now Time and the packed timestamp word.
+    expect(allocations { Fast::UUID.v7 }).to be(:<, 7)
   end
 
-  it "generates v1 in at most sixteen objects" do
-    # The now Time, the node's random bytes and their hex, the clock
-    # sequence's bytes, the two words in their Array and the packed bytes,
-    # then the value object's binary copy and canonical form. v1's time_low
-    # word crosses the immediate-Integer line whenever its top bits are set
-    # — a phase that cycles with the clock — and 16 is that high phase; the
-    # low phase costs five fewer and stays under the budget.
+  it "generates the uuid_v4 String in two objects" do
+    Fast::UUID.uuid_v4
+    # The random bytes and the hex; the value object is skipped.
+    expect(allocations { Fast::UUID.uuid_v4 }).to be(:<, 3)
+  end
+
+  it "generates the uuid_v7 String in four objects" do
+    Fast::UUID.uuid_v7
+    # The random bytes, the now Time, the packed timestamp word and the
+    # hex; the value object is skipped.
+    expect(allocations { Fast::UUID.uuid_v7 }).to be(:<, 5)
+  end
+
+  it "generates v1 in at most thirteen objects" do
+    # The now Time, the node's random bytes, the clock sequence's, the
+    # composed timestamp word, the two words in their Array and the packed
+    # bytes, then the value object's binary copy, hex and the value. v1's
+    # time_low word crosses the immediate-Integer line whenever its top
+    # bits are set — a phase that cycles with the clock every few minutes —
+    # and 13 is that high phase; the low phase costs four fewer.
     Fast::UUID.v1
-    expect(allocations { Fast::UUID.v1 }).to be(:<, 17)
+    expect(allocations { Fast::UUID.v1 }).to be(:<, 14)
   end
 
-  it "generates v6 in eleven objects" do
-    # The same shape as v1, v6's time_high word staying inside the
-    # immediate-Integers for the next several thousand years.
+  it "generates v6 in at most nine objects" do
+    # The same shape as v1: v6's field order changes the composition, not
+    # the allocation, and v6's composed words stay inside the
+    # immediate-Integers for the next few centuries.
     Fast::UUID.v6
-    expect(allocations { Fast::UUID.v6 }).to be(:<, 12)
+    expect(allocations { Fast::UUID.v6 }).to be(:<, 10)
   end
 
-  it "generates v3 in seventeen objects" do
+  it "generates v3 in eight objects" do
     # The name's binary copy and the digest input it feeds, the MD5
-    # machinery and its digest, the unpacked halves in their Array, the
-    # packed bytes, then the value object's binary copy and canonical form.
+    # machinery and its digest, then the value object's binary copy, hex
+    # and the value.
     Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com")
-    expect(allocations { Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 18)
+    expect(allocations { Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 9)
   end
 
-  it "generates v5 in sixteen objects" do
-    # The same shape as v3, one object lighter: this digest's high half
-    # stays a small Integer where the v3 vector's lands above 2**62, a
-    # heap Integer apiece at unpack and at mask.
+  it "generates v5 in nine objects" do
+    # The same shape as v3, one object heavier: the 160-bit digest's
+    # leftmost 128 bits are sliced out before they are stamped.
     Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com")
-    expect(allocations { Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 17)
+    expect(allocations { Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 10)
   end
 
   it "renders to_s for free" do
