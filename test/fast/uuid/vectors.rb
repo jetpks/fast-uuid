@@ -22,4 +22,24 @@ describe "RFC 9562 Appendix A test vectors" do
       expect(uuid.timestamp&.utc&.strftime("%Y-%m-%dT%H:%M:%SZ")).to be(:==, timestamp)
     end
   end
+
+  # A.2 and A.4 are the DNS namespace and the name "www.example.com": the
+  # name-based versions generate them, not just parse them.
+  describe "the v3 and v5 vectors, generated" do
+    it "generates the v3 vector from the DNS namespace" do
+      uuid = Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com")
+      expect(uuid.to_s).to be(:==, "5df41881-3aed-3515-88a7-2f4a814cf09e")
+      expect(uuid.version).to be(:==, 3)
+      expect(uuid.variant).to be(:==, :rfc9562)
+      expect(uuid.timestamp).to be_nil
+    end
+
+    it "generates the v5 vector from the DNS namespace" do
+      uuid = Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com")
+      expect(uuid.to_s).to be(:==, "2ed6657d-e927-568b-95e1-2665a8aea6a2")
+      expect(uuid.version).to be(:==, 5)
+      expect(uuid.variant).to be(:==, :rfc9562)
+      expect(uuid.timestamp).to be_nil
+    end
+  end
 end

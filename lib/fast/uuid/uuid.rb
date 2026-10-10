@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
+require "digest"
 require "securerandom"
 
 module Fast
-  # An immutable, frozen RFC 9562 UUID value: generate v4/v7, parse and
-  # validate every version and variant, compare as an opaque 128-bit value.
+  # An immutable, frozen RFC 9562 UUID value: generate v4/v7 and name-based
+  # v3/v5, parse and validate every version and variant, compare as an
+  # opaque 128-bit value.
   class UUID
     include Comparable
 
@@ -37,10 +39,42 @@ module Fast
       new([high, low].pack("Q> Q>"))
     end
 
+    # MD5 over the namespace's 16 bytes followed by the name's, the whole
+    # 128-bit digest masked into place: version 3 fills one nibble and the
+    # 10xx variant the top two bits. Where possible, prefer v5.
+    def self.v3(namespace, name)
+      high, low = Digest::MD5.digest(digest_input(namespace, name)).unpack("Q> Q>")
+      high = (high & 0xFFFFFFFFFFFF0FFF) | 0x3000
+      low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
+      new([high, low].pack("Q> Q>"))
+    end
+
+    # SHA-1 over the same input, the leftmost 128 bits of its 160-bit digest
+    # (the rightmost 32 discarded) masked into place: version 5, the 10xx
+    # variant.
+    def self.v5(namespace, name)
+      high, low = Digest::SHA1.digest(digest_input(namespace, name)).byteslice(0, 16).unpack("Q> Q>")
+      high = (high & 0xFFFFFFFFFFFF0FFF) | 0x5000
+      low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
+      new([high, low].pack("Q> Q>"))
+    end
+
     # The RFC's recommended default: v7.
     def self.generate
       v7
     end
+
+    # The input of both name-based versions: the namespace's 16 bytes
+    # followed by the name's. A String namespace parses, any other non-UUID
+    # raises TypeError, as does a non-String name.
+    def self.digest_input(namespace, name)
+      raise TypeError, "a String name is required (got #{name.class})" unless name.is_a?(String)
+
+      namespace = parse(namespace) unless namespace.is_a?(UUID)
+      namespace.bytes + name.b
+    end
+
+    private_class_method :digest_input
 
     def self.parse(str)
       raise TypeError, "no implicit conversion of #{str.class} into Fast::UUID" unless str.is_a?(String)
@@ -151,3 +185,7 @@ end
 
 Fast::UUID::NIL = Fast::UUID.new(("\0" * 16).b)
 Fast::UUID::MAX = Fast::UUID.new(("\xFF" * 16).b)
+Fast::UUID::NAMESPACE_DNS = Fast::UUID.parse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+Fast::UUID::NAMESPACE_URL = Fast::UUID.parse("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
+Fast::UUID::NAMESPACE_OID = Fast::UUID.parse("6ba7b812-9dad-11d1-80b4-00c04fd430c8")
+Fast::UUID::NAMESPACE_X500 = Fast::UUID.parse("6ba7b814-9dad-11d1-80b4-00c04fd430c8")

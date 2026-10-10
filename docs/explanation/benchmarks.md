@@ -30,8 +30,8 @@ and it wins the same way: fewer objects, less work.
 | parse, fast-uuid | 1,478,526 | 1.51 | 6.00 |
 | parse, uuidtools | 484,179 | 1.83 | 27.00 |
 
-Generation is within about 15% of the stdlib String for v4 and v7: the CSPRNG call and
-the String it returns dominate both, and the value object on top costs four more
+Generation is 12.5% behind the stdlib String for v4 and 21.5% for v7: the CSPRNG call
+and the String it returns dominate both, and the value object on top costs four more
 objects — the bytes, the canonical form, the mask arithmetic's temporaries. Parsing is
 where the design difference shows: fast-uuid parses **3x faster than uuidtools with
 4.5x fewer objects**, because the parse is a match against one Regexp and a `pack("H*")`
