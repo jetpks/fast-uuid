@@ -8,7 +8,9 @@ require "fast/uuid"
 # block touches is a local: a `let` costs an object per read. Measured on
 # Ruby 4.0.7, then frozen: parse 6, v4 4 and v7 6, uuid_v4 2 and uuid_v7
 # 4, v1 9 and v6 9, v3 8 and v5 9, to_s and the comparisons 0, hex and
-# urn 1, the v7 timestamp 2.
+# urn 1, the v7 timestamp 2. A Symbol input costs what the String it
+# carries costs — Symbol#name hands over a frozen String, no copy: parse
+# 6, v3 7, v5 8.
 describe "allocations" do
   # Objects allocated per run of the block, averaged over +times+ runs so a
   # one-off allocation outside the block (GC.stat's own, under coverage)
@@ -71,6 +73,14 @@ describe "allocations" do
     expect(allocations { Fast::UUID.v6 }).to be(:<, 10)
   end
 
+  it "parses a Symbol in six objects" do
+    symbol = :"017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
+    Fast::UUID.parse(symbol)
+    # The String budget's six, minus the #to_s copy: #name hands over the
+    # frozen String the Symbol already carries.
+    expect(allocations { Fast::UUID.parse(symbol) }).to be(:<, 7)
+  end
+
   it "generates v3 in eight objects" do
     # The name's binary copy and the digest input it feeds, the MD5
     # machinery and its digest, then the value object's binary copy, hex
@@ -79,11 +89,25 @@ describe "allocations" do
     expect(allocations { Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 9)
   end
 
+  it "generates v3 from a Symbol name in seven objects" do
+    # The String name's seven: #name hands over the frozen String the
+    # Symbol already carries, no #to_s copy.
+    Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, :"www.example.com")
+    expect(allocations { Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, :"www.example.com") }).to be(:<, 8)
+  end
+
   it "generates v5 in nine objects" do
     # The same shape as v3, one object heavier: the 160-bit digest's
     # leftmost 128 bits are sliced out before they are stamped.
     Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com")
     expect(allocations { Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 10)
+  end
+
+  it "generates v5 from a Symbol name in eight objects" do
+    # The same shape as v3's Symbol name, one object heavier: the 160-bit
+    # digest's leftmost 128 bits are sliced out before they are stamped.
+    Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, :"www.example.com")
+    expect(allocations { Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, :"www.example.com") }).to be(:<, 9)
   end
 
   it "renders to_s for free" do
