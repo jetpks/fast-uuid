@@ -44,7 +44,7 @@ puts "#{RUBY_DESCRIPTION}; fast-uuid #{Fast::UUID::VERSION}"
 
 report = Benchmark.ips do |x|
   x.quiet = true
-  x.config(time: QUICK ? 0.5 : 2, warmup: QUICK ? 0.2 : 0.5)
+  x.config(time: QUICK ? 0.5 : 5, warmup: QUICK ? 0.2 : 1)
   operations.each { |name, call| x.report(name, &call) }
 end
 
