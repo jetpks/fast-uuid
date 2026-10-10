@@ -10,9 +10,9 @@ provenance and version are irrelevant to identity.
 
 | Signature | Returns | Notes |
 |---|---|---|
-| `parse(str)` | `Fast::UUID` | Parses a String in the RFC §4 canonical form, `4hexOctet-2hexOctet-2hexOctet-2hexOctet-6hexOctet`, case-insensitive. Validity is that grammar and nothing more: any version and any variant parses, Nil and Max included. Raises `Fast::UUID::ParseError` for a non-conforming String and `TypeError` for a non-String. See [Why validity is the grammar and nothing more](../explanation/validity.md). |
+| `parse(str)` | `Fast::UUID` | Parses a String, or anything string-like (`#to_s`), in the RFC §4 canonical form, `4hexOctet-2hexOctet-2hexOctet-2hexOctet-6hexOctet`, case-insensitive. Validity is that grammar and nothing more: any version and any variant parses, Nil and Max included. Raises `Fast::UUID::ParseError` for input whose `#to_s` does not conform and `TypeError` for an object with no `#to_s`. See [Why validity is the grammar and nothing more](../explanation/validity.md). |
 | `parse?(str)` | `Fast::UUID` or `nil` | `parse` without raising: nil for every rejection, wrong type included. |
-| `valid?(str)` | Boolean | The same grammar, as a check: true for a conforming String, false otherwise. |
+| `valid?(str)` | Boolean | The same grammar, as a check: true for string-like input whose `#to_s` conforms, false otherwise. |
 | `new(bytes)` | `Fast::UUID` | Builds from a 16-byte binary String; raises `ArgumentError` otherwise. An encoding tag on a 16-byte input is normalized to binary. |
 | `v1(time: Time.now, node: nil, clock_sequence: nil)` | `Fast::UUID` | The 60-bit 100-ns Gregorian timestamp (baseline 1582-10-15) split least-significant-first, version 1, `10xx` variant. `node` defaults to a fresh CSPRNG value multicast-marked per RFC §6.10, `clock_sequence` to a fresh CSPRNG draw; an Integer `node` masks to 48 bits, a 6-byte String unpacks, an Integer `clock_sequence` masks to 14 bits. v1 does not sort chronologically — its least significant field sits first — so where possible, the RFC says, prefer v7 (§5.7). See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
 | `uuid_v1(time: Time.now, node: nil, clock_sequence: nil)` | `String` | `v1`'s canonical form as a frozen String: the same arguments, the same errors, the value object skipped. |
@@ -65,6 +65,6 @@ provenance and version are irrelevant to identity.
 | Class | Raised when |
 |---|---|
 | `Fast::UUID::Error` (`< StandardError`) | The base class of every error this gem raises; rescue it to catch both of the below. |
-| `Fast::UUID::ParseError` (`< Fast::UUID::Error`) | `parse` was given a String that does not conform to the RFC §4 grammar, or `v3`/`v5` a namespace String that does not conform. |
-| `::TypeError` | `parse` was given a non-String, `v3`/`v5` (and their `uuid_v3`/`uuid_v5` String forms) a non-String name or a namespace that is neither a `Fast::UUID` nor a String, or `v1`/`v6` (and their `uuid_v1`/`uuid_v6` String forms) a `node` that is neither an Integer nor a 6-byte String or a `clock_sequence` that is not an Integer. |
+| `Fast::UUID::ParseError` (`< Fast::UUID::Error`) | `parse` was given string-like input whose `#to_s` does not conform to the RFC §4 grammar, or `v3`/`v5` a namespace String that does not conform. |
+| `::TypeError` | `parse` was given an object with no `#to_s`, `v3`/`v5` (and their `uuid_v3`/`uuid_v5` String forms) a non-String name or a namespace that is neither a `Fast::UUID` nor a String, or `v1`/`v6` (and their `uuid_v1`/`uuid_v6` String forms) a `node` that is neither an Integer nor a 6-byte String or a `clock_sequence` that is not an Integer. |
 | `::ArgumentError` | `new` was given anything but a 16-byte String. |

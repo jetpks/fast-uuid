@@ -8,14 +8,17 @@ for parsing. Single process, Ruby 4.0.7, Apple M4 Max (arm64-darwin23); uuidtool
 Each operation runs under `benchmark-ips` for two seconds after half a second of
 warmup, and separately once for allocation: ten thousand calls with GC disabled and
 `GC.stat(:total_allocated_objects)` read around them, so the last column is the
-operation's whole Ruby-object footprint per call. The parsed sample is the RFC 9562
-Appendix A v7 vector.
+operation's whole Ruby-object footprint per call. The parsed sample is a v7 vector and
+comes from Appendix A of RFC 9562[^1].
 
-Read the two libraries for what they are. `SecureRandom.uuid_v4` and `.uuid_v7` return
-a String and nothing else — 36 characters, no version, no timestamp, no comparison.
-fast-uuid's `uuid_v4` and `uuid_v7` do the same CSPRNG work and return the same String
-shape, with the version and variant bytes masked in place instead of a round trip
-through 64-bit words — and win on both columns. The object constructors build the
+fast-uuid produces RFC-compliant UUIDs faster and more efficiently than `SecureRandom`,
+and parses them faster and more efficiently than `uuidtools`. These gains come mostly
+from avoiding object allocations, which provides direct speedups at runtime and
+efficiency gains at garbage-collection time. Read the two libraries for what they are.
+`SecureRandom.uuid_v4` and `.uuid_v7` return a String and nothing else — 36 characters,
+no version, no timestamp, no comparison. fast-uuid's `uuid_v4` and `uuid_v7` do the
+same CSPRNG work and return the same String shape, with the version and variant bytes
+masked in place instead of a round trip through 64-bit words. The object constructors build the
 frozen value object on top of the same bytes, and still come out ahead of the stdlib
 String for v4 and within 8% of it for v7, at half or fewer of the objects; what the
 object buys is everything else in this gem. `UUIDTools::UUID.parse` returns a mutable
@@ -67,3 +70,5 @@ the ratios as the finding and re-measure before quoting anything finer.
 - fast-uuid is the right call even when a String is all you want — its `uuid_v4` and
   `uuid_v7` are drop-ins for the stdlib's own and its numbers say the value object
   around them is nearly free.
+
+[^1]: RFC 9562, Appendix A — <https://www.rfc-editor.org/rfc/rfc9562#appendix-a>

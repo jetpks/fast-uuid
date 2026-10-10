@@ -1,7 +1,6 @@
 # fast-uuid
 
-> **Alpha, pre-1.0.** The surface may still move between v0.x releases — pin the gem
-> if you ship on it before 1.0.
+> **Alpha, pre-1.0.** The API surface may still move between v0.x and v1.0.
 
 RFC 9562 UUIDs for Ruby, pure Ruby with nothing on top of them: generate v4
 and v7 — as frozen value objects or as bare Strings (`Fast::UUID.uuid`,
@@ -9,13 +8,12 @@ and v7 — as frozen value objects or as bare Strings (`Fast::UUID.uuid`,
 v5 from a namespace and a name, parse and validate every version and variant,
 and compare UUIDs as the opaque 128-bit values they are.
 
-It is not a replacement for anything already on your load path, because
-there is nothing there to replace. `securerandom` ships `uuid_v4` and
-`uuid_v7`, but they only ever hand you a String — no value object, no parse,
-no compare, no timestamp. `uuid` is archived, v1-only, last released in 2018.
-`uuidtools` validates but does not generate v6, v7 or v8. fast-uuid covers
-the RFC end-to-end, zero dependencies, proven in-suite against the RFC's own
-Appendix A test vectors.
+The goal is a nice, fast, consistent interface that covers everything you
+might want to do with a UUID: the RFC end-to-end, zero dependencies, proven
+in-suite against the RFC's own Appendix A test vectors. The established
+options each cover part of that surface — `securerandom` ships `uuid_v4` and
+`uuid_v7` as Strings, `uuidtools` covers parsing and most of the versions,
+`uuid` is archived — and fast-uuid brings the whole of it under one interface.
 
 ## Installation
 
@@ -42,7 +40,7 @@ sorted = [Fast::UUID.v7, Fast::UUID.v7].sort  # v7 sorts chronologically, RFC 6.
 ```
 
 `Fast::UUID.parse` raises `Fast::UUID::ParseError` for anything the RFC 4
-grammar rejects and `TypeError` for a non-String; `parse?` and `valid?` are
+grammar rejects and `TypeError` for an object with no `to_s`; `parse?` and `valid?` are
 the non-raising forms. Validity is the grammar and nothing more — every
 version and variant parses, Nil and Max included.
 
