@@ -92,12 +92,16 @@ describe "the string constructors" do
   end
 
   describe "error parity with the object twins" do
+    def no_string_form
+      Class.new(BasicObject).new
+    end
+
     it "raises TypeError for the same bad node and clock_sequence" do
       %i[uuid_v1 uuid_v6].each do |version|
-        [4.2, "00" * 5, ["9f6bdeced846"], :multicast].each do |node|
+        ["00" * 5, ["9f6bdeced846"], :multicast, no_string_form].each do |node|
           expect { Fast::UUID.public_send(version, node: node) }.to raise_exception(::TypeError)
         end
-        ["0", 4.2, [0x33C8]].each do |clock_sequence|
+        ["0", [0x33C8], no_string_form].each do |clock_sequence|
           expect { Fast::UUID.public_send(version, clock_sequence: clock_sequence) }.to raise_exception(::TypeError)
         end
       end
@@ -105,12 +109,27 @@ describe "the string constructors" do
 
     it "raises TypeError for the same bad name and namespace" do
       %i[uuid_v3 uuid_v5].each do |version|
-        [42, nil, ["www.example.com"]].each do |name|
-          expect { Fast::UUID.public_send(version, Fast::UUID::NAMESPACE_DNS, name) }.to raise_exception(::TypeError)
+        expect do
+          Fast::UUID.public_send(version, Fast::UUID::NAMESPACE_DNS, no_string_form)
+        end.to raise_exception(::TypeError)
+        expect { Fast::UUID.public_send(version, no_string_form, "www.example.com") }.to raise_exception(::TypeError)
+      end
+    end
+
+    it "raises ParseError for the same bad namespace" do
+      %i[uuid_v3 uuid_v5].each do |version|
+        [42, nil, [Fast::UUID::NAMESPACE_DNS.to_s], "not-a-uuid"].each do |namespace|
+          expect { Fast::UUID.public_send(version, namespace, "www.example.com") }.to raise_exception(Fast::UUID::ParseError)
         end
-        [42, nil, [Fast::UUID::NAMESPACE_DNS.to_s]].each do |namespace|
-          expect { Fast::UUID.public_send(version, namespace, "www.example.com") }.to raise_exception(::TypeError)
-        end
+      end
+    end
+
+    it "renders the same UUIDs from a Symbol name and a Symbol namespace as the object twins" do
+      %i[uuid_v3 uuid_v5].each do |version|
+        expect(Fast::UUID.public_send(version, Fast::UUID::NAMESPACE_DNS, :"www.example.com"))
+          .to be(:==, Fast::UUID.public_send(version, Fast::UUID::NAMESPACE_DNS, "www.example.com"))
+        expect(Fast::UUID.public_send(version, :"6ba7b810-9dad-11d1-80b4-00c04fd430c8", "www.example.com"))
+          .to be(:==, Fast::UUID.public_send(version, Fast::UUID::NAMESPACE_DNS, "www.example.com"))
       end
     end
   end
