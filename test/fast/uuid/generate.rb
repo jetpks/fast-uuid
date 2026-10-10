@@ -63,6 +63,42 @@ describe Fast::UUID do
     end
   end
 
+  describe ".v3 and .v5" do
+    def generated(version, namespace = Fast::UUID::NAMESPACE_DNS, name = "www.example.com")
+      Fast::UUID.public_send(version, namespace, name)
+    end
+
+    it "generates the same UUID from the same namespace and name, however the namespace is given" do
+      %i[v3 v5].each do |version|
+        expect(generated(version, Fast::UUID::NAMESPACE_DNS.to_s)).to be(:==, generated(version))
+      end
+    end
+
+    it "gives a different UUID for a different name" do
+      %i[v3 v5].each do |version|
+        same = generated(version)
+        expect(generated(version, Fast::UUID::NAMESPACE_DNS, "example.com") == same).to be(:==, false)
+      end
+    end
+
+    it "raises TypeError for a non-String name and for a namespace that is neither UUID nor String" do
+      %i[v3 v5].each do |version|
+        [42, nil, ["www.example.com"]].each do |name|
+          expect { generated(version, Fast::UUID::NAMESPACE_DNS, name) }.to raise_exception(::TypeError)
+        end
+        [42, nil, [Fast::UUID::NAMESPACE_DNS.to_s]].each do |namespace|
+          expect { generated(version, namespace) }.to raise_exception(::TypeError)
+        end
+      end
+    end
+
+    it "raises ParseError for a non-conforming String namespace" do
+      %i[v3 v5].each do |version|
+        expect { generated(version, "not-a-uuid") }.to raise_exception(Fast::UUID::ParseError)
+      end
+    end
+  end
+
   describe ".generate" do
     it "defaults to v7, the RFC's recommended default" do
       expect(Fast::UUID.generate.version).to be(:==, 7)

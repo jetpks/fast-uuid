@@ -6,8 +6,9 @@ require "fast/uuid"
 # operation costs in Ruby objects beyond the UUID itself. Counts are
 # GC.stat, exact and the same on every platform. Everything a measured
 # block touches is a local: a `let` costs an object per read. Measured on
-# Ruby 4.0.7, then frozen: parse 6, v4 12, v7 12, to_s and the comparisons
-# 0, hex and urn 1, the v7 timestamp 2 and the v1 timestamp 10.
+# Ruby 4.0.7, then frozen: parse 6, v4 12, v7 12, v3 17 and v5 16, to_s
+# and the comparisons 0, hex and urn 1, the v7 timestamp 2 and the v1
+# timestamp 10.
 describe "allocations" do
   # Objects allocated per run of the block, averaged over +times+ runs so a
   # one-off allocation outside the block (GC.stat's own, under coverage)
@@ -32,6 +33,22 @@ describe "allocations" do
   it "generates v7 in twelve objects" do
     Fast::UUID.v7
     expect(allocations { Fast::UUID.v7 }).to be(:<, 13)
+  end
+
+  it "generates v3 in seventeen objects" do
+    # The name's binary copy and the digest input it feeds, the MD5
+    # machinery and its digest, the unpacked halves in their Array, the
+    # packed bytes, then the value object's binary copy and canonical form.
+    Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com")
+    expect(allocations { Fast::UUID.v3(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 18)
+  end
+
+  it "generates v5 in sixteen objects" do
+    # The same shape as v3, one object lighter: this digest's high half
+    # stays a small Integer where the v3 vector's lands above 2**62, a
+    # heap Integer apiece at unpack and at mask.
+    Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com")
+    expect(allocations { Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com") }).to be(:<, 17)
   end
 
   it "renders to_s for free" do
