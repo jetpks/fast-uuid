@@ -32,6 +32,8 @@ operations = {
   "generate v4, securerandom" => -> { SecureRandom.uuid_v4 },
   "generate v7, fast-uuid" => -> { Fast::UUID.v7 },
   "generate v7, securerandom" => -> { SecureRandom.uuid_v7 },
+  "uuid_v4 string, fast-uuid" => -> { Fast::UUID.uuid_v4 },
+  "uuid_v7 string, fast-uuid" => -> { Fast::UUID.uuid_v7 },
   "parse, fast-uuid" => -> { Fast::UUID.parse(SAMPLE) },
   "parse, uuidtools" => -> { UUIDTools::UUID.parse(SAMPLE) }
 }

@@ -19,24 +19,29 @@ module Fast
     # 100-ns ticks between the Gregorian (1582-10-15) and Unix epoch baselines.
     GREGORIAN_OFFSET = 122_192_928_000_000_000
 
-    # 128 random bits from the CSPRNG, masked into place: 122 stay random,
-    # version 4 fills one nibble and the 10xx variant the top two bits.
+    # 128 random bits from the CSPRNG, version and variant stamped into
+    # place: 122 stay random, version 4 fills one nibble and the 10xx
+    # variant the top two bits.
     def self.v4
-      high, low = SecureRandom.bytes(16).unpack("Q> Q>")
-      high = (high & 0xFFFFFFFFFFFF0FFF) | 0x4000
-      low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
-      new([high, low].pack("Q> Q>"))
+      new(v4_bytes)
+    end
+
+    # The same 128 random bits as .v4, rendered straight to the canonical
+    # form — drop-in for SecureRandom.uuid_v4, the value object skipped.
+    def self.uuid_v4
+      canonical(v4_bytes)
     end
 
     # The time is truncated to whole milliseconds for the 48-bit unix_ts_ms;
     # rand_a and rand_b stay fully random, no counter and no shared state.
     def self.v7(time: Time.now)
-      high, low = SecureRandom.bytes(16).unpack("Q> Q>")
-      milliseconds = (time.to_i * 1000) + (time.nsec / 1_000_000)
-      milliseconds &= 0xFFFFFFFFFFFF
-      high = (milliseconds << 16) | 0x7000 | (high & 0x0FFF)
-      low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
-      new([high, low].pack("Q> Q>"))
+      new(v7_bytes(time: time))
+    end
+
+    # The same 48-bit unix_ts_ms and random tail as .v7, rendered straight
+    # to the canonical form — drop-in for SecureRandom.uuid_v7.
+    def self.uuid_v7(time: Time.now)
+      canonical(v7_bytes(time: time))
     end
 
     # The 60-bit 100-ns Gregorian timestamp both time-based versions
@@ -64,28 +69,30 @@ module Fast
       end
     end
 
-    # The low word v1 and v6 share: the 10xx variant over the 14-bit
-    # clock_seq, then the 48-bit node. A nil clock_sequence draws a fresh
-    # CSPRNG value, as v4 draws its bits.
+    # The low word v1 and v6 share: the 14-bit clock_seq over the 48-bit
+    # node, the variant's top two bits stamped in place after the pack. A
+    # nil clock_sequence draws a fresh CSPRNG value, as v4 draws its bits.
     def self.sequence_low(node, clock_sequence)
       unless clock_sequence.nil? || clock_sequence.is_a?(Integer)
         raise TypeError, "an Integer clock_sequence is required (got #{clock_sequence.class})"
       end
 
       clock_sequence = SecureRandom.bytes(2).unpack1("n") & 0x3FFF if clock_sequence.nil?
-      0x8000000000000000 | ((clock_sequence & 0x3FFF) << 48) | node_id(node)
+      ((clock_sequence & 0x3FFF) << 48) | node_id(node)
     end
-
-    private_class_method :gregorian_ticks, :node_id, :sequence_low
 
     # The 60-bit Gregorian timestamp split least-significant-first:
     # time_low, then time_mid, then time_hi under the version nibble 1.
     # Where possible, prefer v7 (RFC §5.7): v1's least significant field
     # sits first, so it does not sort chronologically.
     def self.v1(time: Time.now, node: nil, clock_sequence: nil)
-      ticks = gregorian_ticks(time)
-      high = ((ticks & 0xFFFFFFFF) << 32) | (((ticks >> 32) & 0xFFFF) << 16) | 0x1000 | (ticks >> 48)
-      new([high, sequence_low(node, clock_sequence)].pack("Q> Q>"))
+      new(v1_bytes(time: time, node: node, clock_sequence: clock_sequence))
+    end
+
+    # The same 60-bit timestamp as .v1, rendered straight to the canonical
+    # form with the same node and clock sequence handling.
+    def self.uuid_v1(time: Time.now, node: nil, clock_sequence: nil)
+      canonical(v1_bytes(time: time, node: node, clock_sequence: clock_sequence))
     end
 
     # v1's timestamp reordered most-significant-first (RFC §5.6, the v1
@@ -93,34 +100,47 @@ module Fast
     # version nibble 6. Same node, clock sequence and variant as v1, and it
     # sorts chronologically where v1 does not.
     def self.v6(time: Time.now, node: nil, clock_sequence: nil)
-      ticks = gregorian_ticks(time)
-      high = ((ticks >> 28) << 32) | (((ticks >> 12) & 0xFFFF) << 16) | 0x6000 | (ticks & 0xFFF)
-      new([high, sequence_low(node, clock_sequence)].pack("Q> Q>"))
+      new(v6_bytes(time: time, node: node, clock_sequence: clock_sequence))
     end
 
-    # MD5 over the namespace's 16 bytes followed by the name's, the whole
-    # 128-bit digest masked into place: version 3 fills one nibble and the
-    # 10xx variant the top two bits. Where possible, prefer v5.
+    # The same reordered timestamp as .v6, rendered straight to the
+    # canonical form.
+    def self.uuid_v6(time: Time.now, node: nil, clock_sequence: nil)
+      canonical(v6_bytes(time: time, node: node, clock_sequence: clock_sequence))
+    end
+
+    # MD5 over the namespace's 16 bytes followed by the name's, version and
+    # variant stamped into the whole 128-bit digest. Where possible, prefer
+    # v5.
     def self.v3(namespace, name)
-      high, low = Digest::MD5.digest(digest_input(namespace, name)).unpack("Q> Q>")
-      high = (high & 0xFFFFFFFFFFFF0FFF) | 0x3000
-      low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
-      new([high, low].pack("Q> Q>"))
+      new(v3_bytes(namespace, name))
     end
 
-    # SHA-1 over the same input, the leftmost 128 bits of its 160-bit digest
-    # (the rightmost 32 discarded) masked into place: version 5, the 10xx
-    # variant.
+    # The same digest as .v3, rendered straight to the canonical form.
+    def self.uuid_v3(namespace, name)
+      canonical(v3_bytes(namespace, name))
+    end
+
+    # SHA-1 over the same input as v3, the leftmost 128 bits of its 160-bit
+    # digest (the rightmost 32 discarded), version and variant stamped in
+    # place.
     def self.v5(namespace, name)
-      high, low = Digest::SHA1.digest(digest_input(namespace, name)).byteslice(0, 16).unpack("Q> Q>")
-      high = (high & 0xFFFFFFFFFFFF0FFF) | 0x5000
-      low = (low & 0x3FFFFFFFFFFFFFFF) | 0x8000000000000000
-      new([high, low].pack("Q> Q>"))
+      new(v5_bytes(namespace, name))
+    end
+
+    # The same digest as .v5, rendered straight to the canonical form.
+    def self.uuid_v5(namespace, name)
+      canonical(v5_bytes(namespace, name))
     end
 
     # The RFC's recommended default: v7.
     def self.generate
       v7
+    end
+
+    # The RFC's recommended default as a String: the v7 canonical form.
+    def self.uuid
+      uuid_v7
     end
 
     # The input of both name-based versions: the namespace's 16 bytes
@@ -134,6 +154,62 @@ module Fast
     end
 
     private_class_method :digest_input
+
+    # The 16 raw bytes each version builds, version and variant nibbles
+    # stamped in place, shared by the object constructors and their uuid_*
+    # String twins.
+    def self.v4_bytes
+      stamp(SecureRandom.bytes(16), 4)
+    end
+
+    def self.v7_bytes(time:)
+      bytes = SecureRandom.bytes(16)
+      milliseconds = (time.to_i * 1000) + (time.nsec / 1_000_000)
+      milliseconds &= 0xFFFFFFFFFFFF
+      # The masked unix_ts_ms rides in the middle six bytes of an 8-byte
+      # word, leaving bytes 6-7 to the random rand_a they already hold.
+      bytes.bytesplice(0, 6, [milliseconds].pack("Q>"), 2, 6)
+      stamp(bytes, 7)
+    end
+
+    def self.v1_bytes(time:, node:, clock_sequence:)
+      ticks = gregorian_ticks(time)
+      bytes = [((ticks & 0xFFFFFFFF) << 32) | (((ticks >> 32) & 0xFFFF) << 16) | (ticks >> 48),
+               sequence_low(node, clock_sequence)].pack("Q> Q>")
+      stamp(bytes, 1)
+    end
+
+    def self.v6_bytes(time:, node:, clock_sequence:)
+      ticks = gregorian_ticks(time)
+      bytes = [((ticks >> 28) << 32) | (((ticks >> 12) & 0xFFFF) << 16) | (ticks & 0xFFF),
+               sequence_low(node, clock_sequence)].pack("Q> Q>")
+      stamp(bytes, 6)
+    end
+
+    def self.v3_bytes(namespace, name)
+      stamp(Digest::MD5.digest(digest_input(namespace, name)), 3)
+    end
+
+    def self.v5_bytes(namespace, name)
+      stamp(Digest::SHA1.digest(digest_input(namespace, name)).byteslice(0, 16), 5)
+    end
+
+    # The version nibble and the 10xx variant, masked into the finished 16
+    # bytes in place — setbyte arithmetic, zero objects.
+    def self.stamp(bytes, version)
+      bytes.setbyte(6, (bytes.getbyte(6) & 0x0F) | (version << 4))
+      bytes.setbyte(8, (bytes.getbyte(8) & 0x3F) | 0x80)
+      bytes
+    end
+
+    # The canonical dashed form of 16 stamped bytes: hexencode's lowercase
+    # hex, the hyphens inserted in place, frozen like #to_s.
+    def self.canonical(bytes)
+      Digest.hexencode(bytes).insert(8, "-").insert(13, "-").insert(18, "-").insert(23, "-").freeze
+    end
+
+    private_class_method :v4_bytes, :v7_bytes, :v1_bytes, :v6_bytes, :v3_bytes, :v5_bytes,
+                         :stamp, :canonical
 
     def self.parse(str)
       raise TypeError, "no implicit conversion of #{str.class} into Fast::UUID" unless str.is_a?(String)
@@ -160,7 +236,7 @@ module Fast
       end
 
       @bytes = bytes.b.freeze
-      @string = @bytes.unpack1("H*").insert(8, "-").insert(13, "-").insert(18, "-").insert(23, "-").freeze
+      @string = Digest.hexencode(@bytes).insert(8, "-").insert(13, "-").insert(18, "-").insert(23, "-").freeze
       freeze
     end
 
@@ -202,7 +278,7 @@ module Fast
     alias to_str to_s
 
     def hex
-      @bytes.unpack1("H*")
+      Digest.hexencode(@bytes)
     end
 
     def urn
