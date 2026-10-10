@@ -41,4 +41,6 @@ The RFC recommends storing UUIDs as 128-bit binary where the storage allows it
 column sorts exactly as `sort` does;
 [In what order UUIDs sort](../explanation/comparison-order.md) covers the v1 caveat.
 Values equal under `==` have identical bytes by definition, so the byte form carries no
-provenance: a parsed UUID and a `new(bytes)` one store and compare the same.
+provenance: a parsed UUID and a `new(bytes)` one store and compare the same. If the
+column exists to be sorted, choose the version for it:
+[How to choose a UUID version](choose-a-uuid-version.md).

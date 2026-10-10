@@ -33,7 +33,8 @@ rejects UUIDs the RFC itself specifies:
 So `version` returns whatever nibble is there, `variant` reports one of four values,
 and both travel with the parse instead of gating it. Version 15, Nil and Max parse;
 [Reference: Fast::UUID](../reference/uuid.md#instance-methods) tabulates what each
-reports.
+reports, and [What a UUID is, and what its versions are](uuid-versions.md) is the tour
+of what the nibbles name.
 
 ## What a caller adds on top
 

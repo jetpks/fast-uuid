@@ -51,3 +51,6 @@ details. If you additionally need "was this one of mine", check `version`:
 uuid = Fast::UUID.parse?(input)
 uuid && uuid.version == 7 # => your v7 IDs, nil otherwise
 ```
+
+For what the version nibble can report — every version 0–15, all four variants — see
+[What a UUID is, and what its versions are](../explanation/uuid-versions.md).
