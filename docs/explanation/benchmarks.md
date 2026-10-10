@@ -28,7 +28,9 @@ Appendix A of RFC 9562[^1].
 | UUIDTools::UUID.parse | 424,056 | 0.66 | 27.00 |
 
 `Fast::UUID` provides drop-in replacements for `SecureRandom` methods `uuid_v4`
-and `uuid_v7`, which return Strings. The Fast::UUID variants allocate fewer objects, are as-fast or faster, and make no compromises on randomness.
+and `uuid_v7`, which both return Strings. The Fast::UUID uuid_v4 variant is 12%
+faster, and allocates 75% fewer objects. The Fast::UUID uuid_v7 variant is 2%
+slower, but allocates 60% fewer objects.
 
 `Fast::UUID.v4` and `Fast::UUID.v7` return Fast::UUID objects that can be
 used in place of Strings in most cases.
