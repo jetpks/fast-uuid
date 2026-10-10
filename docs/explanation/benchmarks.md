@@ -18,14 +18,14 @@ Appendix A of RFC 9562[^1].
 
 | operation | i/s | ±% | objects/call |
 |---|---|---|---|
-| Fast::UUID.uuid_v4 => String | 825,809 | 1.38 | 2.00 |
-| SecureRandom.uuid_v4 => String | 739,618 | 1.43 | 8.00 |
-| Fast::UUID.uuid_v7 => String | 726,870 | 2.17 | 4.00 |
-| SecureRandom.uuid_v7 => String | 746,937 | 1.47 | 10.00 |
-| Fast::UUID.v7 => Fast::UUID | 690,317 | 1.58 | 6.00 |
-| Fast::UUID.v4 => Fast::UUID | 765,330 | 2.41 | 4.00 |
-| Fast::UUID.parse | 1,489,398 | 3.23 | 6.00 |
-| UUIDTools::UUID.parse | 477,883 | 3.01 | 27.00 |
+| Fast::UUID.uuid_v4 => String | 723,059 | 0.38 | 2.00 |
+| SecureRandom.uuid_v4 => String | 636,947 | 0.45 | 8.00 |
+| Fast::UUID.uuid_v7 => String | 641,885 | 0.33 | 4.00 |
+| SecureRandom.uuid_v7 => String | 649,131 | 0.50 | 10.00 |
+| Fast::UUID.v7 => Fast::UUID | 587,187 | 0.39 | 6.00 |
+| Fast::UUID.v4 => Fast::UUID | 658,510 | 0.47 | 4.00 |
+| Fast::UUID.parse | 1,148,483 | 0.52 | 6.00 |
+| UUIDTools::UUID.parse | 422,767 | 0.92 | 27.00 |
 
 `Fast::UUID` provides drop-in replacements for `SecureRandom` methods `uuid_v4`
 and `uuid_v7`, which return Strings. The `Fast::UUID` variants are faster and
