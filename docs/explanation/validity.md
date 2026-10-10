@@ -1,7 +1,7 @@
 # Why validity is the grammar and nothing more
 
-`Fast::UUID.parse` accepts a String when it matches one rule — the RFC 9562 §4 grammar
-— and rejects it when it doesn't. It never checks the version or the variant. That is
+`Fast::UUID.parse` accepts anything string-like when it matches one rule — the RFC 9562
+§4[^1] grammar — and rejects it when it doesn't. It never checks the version or the variant. That is
 a reading of the RFC, not a lack of rigour, and this page is the reading.
 
 ## The one grammar
@@ -49,3 +49,5 @@ That is a statement about your system, not about validity. Keeping it out of `pa
 is what lets the same parser accept the RFC's own Appendix A test vectors across all
 six versions — [the tutorial](../tutorials/generate-parse-and-sort-uuids.md#3-parse-one-from-the-outside-world)
 parses the v1 one in upper case and gets the canonical lower case back.
+
+[^1]: RFC 9562 §4, <https://www.rfc-editor.org/rfc/rfc9562#section-4>

@@ -77,7 +77,7 @@ puts parsed.to_s
 Run it and you'll see `1` and `c232ab00-9414-11ec-b3c8-9f6bdeced846`: the RFC 9562
 Appendix A v1 vector, parsed in upper case, rendered in the canonical lower case.
 
-A String the grammar rejects raises `Fast::UUID::ParseError`, and a non-String raises
+A String the grammar rejects raises `Fast::UUID::ParseError`, and an object with no `to_s` raises
 `TypeError`. Step 5 uses the non-raising forms when the input is untrusted; in your own
 code, reach for `parse` when a UUID is required and anything else is a bug you want to
 hear about.

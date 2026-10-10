@@ -25,7 +25,7 @@ without letting a malformed one raise. You need `Fast::UUID.parse?` or
    ```
 
 3. Reserve `parse` for input a UUID is required for. It raises `Fast::UUID::ParseError`
-   for a non-conforming String and `TypeError` for a non-String, so a bad value stops
+   for a non-conforming String and `TypeError` for an object with no `to_s`, so a bad value stops
    the request loudly instead of becoming a nil you handle somewhere else:
 
    ```ruby

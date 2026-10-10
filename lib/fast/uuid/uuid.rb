@@ -149,6 +149,10 @@ module Fast
     def self.digest_input(namespace, name)
       raise TypeError, "a String name is required (got #{name.class})" unless name.is_a?(String)
 
+      unless namespace.is_a?(UUID) || namespace.is_a?(String)
+        raise TypeError, "no implicit conversion of #{namespace.class} into Fast::UUID"
+      end
+
       namespace = parse(namespace) unless namespace.is_a?(UUID)
       namespace.bytes + name.b
     end
@@ -211,8 +215,21 @@ module Fast
     private_class_method :v4_bytes, :v7_bytes, :v1_bytes, :v6_bytes, :v3_bytes, :v5_bytes,
                          :stamp, :canonical
 
+    # The String a parse or valid? input carries: a String is itself, anything
+    # responding to #to_s converts, anything else has no string form. A
+    # BasicObject descendant has no #is_a?, #class or #respond_to? either, so
+    # the probe is defined? — and the TypeError cannot name the class.
+    def self.implicit_string(str)
+      raise TypeError, "no implicit conversion into Fast::UUID" unless defined?(str.to_s)
+
+      str = str.to_s unless str.is_a?(String)
+      str
+    end
+
+    private_class_method :implicit_string
+
     def self.parse(str)
-      raise TypeError, "no implicit conversion of #{str.class} into Fast::UUID" unless str.is_a?(String)
+      str = implicit_string(str)
       raise ParseError, "not a valid UUID: #{str}" unless CANONICAL.match?(str)
 
       new([str.delete("-")].pack("H*"))
@@ -225,7 +242,9 @@ module Fast
     end
 
     def self.valid?(str)
-      str.is_a?(String) && CANONICAL.match?(str)
+      CANONICAL.match?(implicit_string(str))
+    rescue TypeError
+      false
     end
 
     # From a 16-byte binary String; an encoding tag on the input is
