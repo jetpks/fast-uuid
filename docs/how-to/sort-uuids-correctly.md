@@ -44,6 +44,8 @@ them.
 
 The comparison is opaque by design: the RFC treats the 128 bits as bits, and
 [In what order UUIDs sort](../explanation/comparison-order.md) explains what follows.
+Why v6 and v7 embed their time where they do — and what else the versions buy — is
+[What a UUID is, and what its versions are](../explanation/uuid-versions.md).
 One consequence worth knowing: sorting a mixed collection sorts by value, not by
 version or time, so a v3 can sort before a v7 that was made years earlier. If you need
 time order across versions, sort by `timestamp` — but for one version's worth of v6 or

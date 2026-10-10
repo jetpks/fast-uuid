@@ -15,16 +15,18 @@ The design lives in the byte layouts. A v7 UUID begins with 48 bits of `unix_ts_
 the leading bytes are the timestamp and byte order is time order to the millisecond; a
 v6 UUID carries the same 60-bit Gregorian timestamp as a v1 but reordered
 big-endian-first (`time_high`, then `time_mid`, then `time_low`), which is exactly the
-fix for the caveat below.
+fix for the caveat below. [What a UUID is, and what its versions are](uuid-versions.md)
+is the tour of what each version embeds; this page is the ordering consequence.
 
 ## The v1 caveat
 
 A v1 UUID (§5.1) splits its 60-bit timestamp into `time_low` (the least significant 32
 bits), `time_mid`, and `time_high` — and writes `time_low` first in the byte string.
-Sorted as raw bytes, v1 UUIDs order by their least significant time word first: within
-one `time_mid` tick they scramble, and the sequence crosses over every few seconds.
-v1 is time-based but anti-chronological under byte order, and no comparison function
-can fix that without stopping being opaque.
+Sorted as raw bytes, v1 UUIDs order by `time_low` first: within one `time_mid` period
+— a stretch of about seven minutes — `time_low` still increases with time, but at
+every boundary where it wraps back to zero, an earlier UUID sorts after a later one.
+v1 is time-based but breaks chronology under byte order at every `time_mid` boundary,
+and no comparison function can fix that without stopping being opaque.
 
 This is why the RFC's guidance is about v6 and v7 and says nothing about v1.
 

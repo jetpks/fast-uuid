@@ -110,4 +110,6 @@ That is the RFC's default shape: counters are optional and none is kept, which i
 why generation is thread-safe. See
 [Why validity is the grammar and nothing more](../explanation/validity.md) and
 [In what order UUIDs sort](../explanation/comparison-order.md) for the facts behind
-both behaviours.
+both behaviours. For production identity rather than test fixtures,
+[How to choose a UUID version](choose-a-uuid-version.md) picks between the
+deterministic and the time-based versions.

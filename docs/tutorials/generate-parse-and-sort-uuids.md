@@ -1,9 +1,10 @@
 # Tutorial: generate, parse and sort UUIDs
 
-In this tutorial we generate UUIDs with fast-uuid, parse one from the outside world,
-read what it tells us about itself, and sort a collection of them. By the end you'll
-have a small request-ID module: identifiers that sort by creation time, validate
-untrusted input, and come back out of storage as the same value.
+In this tutorial we generate UUIDs with fast-uuid — randomly, from the clock, and from
+names — parse one from the outside world, read what it tells us about itself, and sort
+a collection of them. By the end you'll have a small request-ID module: identifiers
+that sort by creation time, validate untrusted input, come back out of storage as the
+same value, and derive stably from a name when nothing should be stored.
 
 You'll need Ruby 3.3 or later.
 
@@ -54,11 +55,45 @@ ID", that's the call:
 Fast::UUID.generate.version # => 7
 ```
 
-Both values are frozen, immutable value objects, not Strings. Whatever you can do with
-the 36 characters you can do with the object, and the rest of this tutorial is the part
-you can't.
+Each constructor has a String twin — `Fast::UUID.uuid`, `uuid_v1`, `uuid_v3`,
+`uuid_v4`, `uuid_v5`, `uuid_v6`, `uuid_v7` — which renders the canonical form and
+skips the value object. The names are the stdlib's own, and `uuid_v4` and `uuid_v7`
+are drop-ins for `SecureRandom.uuid_v4` and `SecureRandom.uuid_v7`:
 
-## 3. Parse one from the outside world
+```ruby
+Fast::UUID.uuid_v4.class # => String, the canonical form, frozen
+```
+
+Both forms are frozen and immutable value objects — the String twins just skip the
+object wrapper. Whatever you can do with the 36 characters you can do with the object,
+and the rest of this tutorial is the part you can't.
+
+## 3. Derive one from a name
+
+Sometimes the identifier should not be invented but derived: the same input, the same
+UUID, in every process, on every machine, at any time — no storage, no coordination.
+v5 hashes a namespace and a name into the identifier (v3 is the same construction with
+MD5; prefer v5 where possible):
+
+```ruby
+# frozen_string_literal: true
+
+require "fast/uuid"
+
+namespace = Fast::UUID::NAMESPACE_URL
+
+uuid = Fast::UUID.v5(namespace, "https://example.com/docs/rfc9562")
+puts uuid.version
+puts uuid == Fast::UUID.v5(namespace, "https://example.com/docs/rfc9562")
+```
+
+Run it: `5`, then `true`. Nothing was random, so nothing needs remembering — the UUID
+is a pure function of the namespace and the name. Use it when the name already
+identifies the thing: a stable ID for a URL, a slug, an external key, a test fixture.
+The namespaces are the RFC §6.6 well-known constants — `NAMESPACE_DNS`, `NAMESPACE_URL`,
+`NAMESPACE_OID`, `NAMESPACE_X500` — or any UUID you fix once and never regenerate.
+
+## 4. Parse one from the outside world
 
 UUIDs arrive as Strings: a header, a form field, a row of a CSV. `Fast::UUID.parse`
 turns one into the value object, and the RFC's grammar is the only rule it applies —
@@ -77,12 +112,19 @@ puts parsed.to_s
 Run it and you'll see `1` and `c232ab00-9414-11ec-b3c8-9f6bdeced846`: the RFC 9562
 Appendix A v1 vector, parsed in upper case, rendered in the canonical lower case.
 
-A String the grammar rejects raises `Fast::UUID::ParseError`, and an object with no `to_s` raises
-`TypeError`. Step 5 uses the non-raising forms when the input is untrusted; in your own
-code, reach for `parse` when a UUID is required and anything else is a bug you want to
-hear about.
+The input doesn't have to be a String, either. Anything string-like is accepted where
+a String is expected — a Symbol parses as neatly as the String it prints as:
 
-## 4. Read what it tells you
+```ruby
+Fast::UUID.parse(:"C232AB00-9414-11EC-B3C8-9F6BDECED846") == parsed # => true
+```
+
+A String the grammar rejects raises `Fast::UUID::ParseError`, and an object with no
+`to_s` raises `TypeError`. Step 7 uses the non-raising form when the input is
+untrusted; in your own code, reach for `parse` when a UUID is required and anything
+else is a bug you want to hear about.
+
+## 5. Read what it tells you
 
 Every UUID reports its version — the nibble, whatever it is — and its variant:
 
@@ -103,14 +145,17 @@ end
 
 The output is `1 rfc9562`, `3 rfc9562`, `4 rfc9562` and `7 rfc9562`. The time-based
 versions also report when they were made: `timestamp` returns a UTC `Time` for v1, v6
-and v7 and nil for everything else.
+and v7 — v1 and v6 on the 100-ns Gregorian grid whose baseline is 1582-10-15, v7 on
+the Unix clock to the millisecond — and nil for everything else.
 
 ```ruby
 Fast::UUID.parse("5df41881-3aed-3515-88a7-2f4a814cf09e").timestamp # => nil (v3 carries no time)
-Fast::UUID.v7.timestamp.class                                      # => Time, in UTC
+Fast::UUID.v7(time: Time.utc(2024, 1, 15, 12, 0, 0)).timestamp     # => 2024-01-15 12:00:00 UTC
 ```
 
-## 5. Sort them
+Generate now, parse years later, ask when — the time travels in the identifier.
+
+## 6. Sort them
 
 `Fast::UUID` includes `Comparable`, and `<=>` compares the raw 128 bits, which is what
 the RFC means by opaque byte order. For v6 and v7 that order is chronological — the
@@ -133,11 +178,11 @@ sort where the bits put them: `Fast::UUID::NIL` before every other UUID,
 `Fast::UUID::MAX` after.
 
 One caveat the RFC does not decide for you, and the reason a how-to exists: v1 is also
-time-based, but its `time_low` field sits first in the byte string, so v1 UUIDs sort in
-a scrambled order. Byte order and time order agree for v6 and v7 only. See
+time-based, but its `time_low` field sits first in the byte string, so v1 UUIDs do not
+sort in time order. Byte order and time order agree for v6 and v7 only. See
 [How to sort UUIDs correctly](../how-to/sort-uuids-correctly.md).
 
-## 6. Put it together: a sortable request ID
+## 7. Put it together: a sortable request ID
 
 Everything so far composes into a small module your application can own. Create
 `request_id.rb`:
@@ -152,6 +197,10 @@ module RequestID
     Fast::UUID.v7(time: at)
   end
 
+  def self.named(url)
+    Fast::UUID.v5(Fast::UUID::NAMESPACE_URL, url)
+  end
+
   def self.accept(string)
     Fast::UUID.parse?(string) or raise ArgumentError, "not a UUID: #{string.inspect}"
   end
@@ -163,15 +212,18 @@ end
 
 issued = RequestID.issue(at: Time.at(1_700_000_000))
 again  = RequestID.accept(issued.to_s)
+stable = RequestID.named("https://example.com/docs/rfc9562")
 
 puts again == issued
 puts RequestID.key(issued).bytesize
+puts stable.version
 ```
 
-Run it: `true`, then `16`. The ID is issued at a known millisecond (`v7(time:)` —
-deterministic enough to assert on in tests), accepted back from its wire form by a
-parser that raises on garbage, and stored as the 16 raw bytes it is, the form the RFC
-recommends for columns and keys. `new(bytes)` reads it back out:
+Run it: `true`, then `16`, then `5`. The ID is issued at a known millisecond
+(`v7(time:)` — deterministic enough to assert on in tests), accepted back from its
+wire form by a parser that raises on garbage, stored as the 16 raw bytes it is — the
+form the RFC recommends for columns and keys — and derived from a name when nothing
+should be stored at all. `new(bytes)` reads the key back out:
 
 ```ruby
 Fast::UUID.new(RequestID.key(issued)) == issued # => true
@@ -179,9 +231,14 @@ Fast::UUID.new(RequestID.key(issued)) == issued # => true
 
 ## What you've built
 
-An identifier you generate in one call, accept from untrusted hands, read the time out
-of, sort without a comparison key, and store in 16 bytes. From here:
+An identifier you generate in one call or derive from a name, accept from untrusted
+hands, read the time out of, sort without a comparison key, and store in 16 bytes.
+From here:
 
+- [How to choose a UUID version](../how-to/choose-a-uuid-version.md) turns the
+  version question into a decision.
+- [What a UUID is, and what its versions are](../explanation/uuid-versions.md) is the
+  tour of what the versions are for — and why a UUID is not a sha256sum.
 - [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md)
   pins a fixture to an exact timestamp and keeps its tail stable.
 - [How to validate untrusted input](../how-to/validate-untrusted-input.md) covers what
