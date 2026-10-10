@@ -1,8 +1,8 @@
 # Reference: Fast::UUID
 
-`Fast::UUID` is one immutable, frozen value class: generate v4/v7 and name-based v3/v5,
-parse and validate every RFC 9562 version and variant, compare as an opaque 128-bit
-value. It includes
+`Fast::UUID` is one immutable, frozen value class: generate v4/v7, time-based v1/v6 and
+name-based v3/v5, parse and validate every RFC 9562 version and variant, compare as an
+opaque 128-bit value. It includes
 `Comparable` and defines `==`, `eql?` and `hash` over the 128-bit value alone — case,
 provenance and version are irrelevant to identity.
 
@@ -14,9 +14,11 @@ provenance and version are irrelevant to identity.
 | `parse?(str)` | `Fast::UUID` or `nil` | `parse` without raising: nil for every rejection, wrong type included. |
 | `valid?(str)` | Boolean | The same grammar, as a check: true for a conforming String, false otherwise. |
 | `new(bytes)` | `Fast::UUID` | Builds from a 16-byte binary String; raises `ArgumentError` otherwise. An encoding tag on a 16-byte input is normalized to binary. |
+| `v1(time: Time.now, node: nil, clock_sequence: nil)` | `Fast::UUID` | The 60-bit 100-ns Gregorian timestamp (baseline 1582-10-15) split least-significant-first, version 1, `10xx` variant. `node` defaults to a fresh CSPRNG value multicast-marked per RFC §6.10, `clock_sequence` to a fresh CSPRNG draw; an Integer `node` masks to 48 bits, a 6-byte String unpacks, an Integer `clock_sequence` masks to 14 bits. v1 does not sort chronologically — its least significant field sits first — so where possible, the RFC says, prefer v7 (§5.7). See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
 | `v3(namespace, name)` | `Fast::UUID` | MD5 over the namespace's 16 bytes followed by the name's, the whole 128-bit digest masked into place: version 3, `10xx` variant. Same namespace and name, same UUID — across processes, machines and years. Where possible, the RFC says, prefer v5 over v3: MD5's collisions are practical. See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
 | `v4` | `Fast::UUID` | 122 random bits from the CSPRNG (`SecureRandom`), version 4, `10xx` variant. |
 | `v5(namespace, name)` | `Fast::UUID` | SHA-1 over the same input as v3, the leftmost 128 bits of its 160-bit digest (the rightmost 32 discarded) masked into place: version 5, `10xx` variant. Same namespace and name, same UUID. |
+| `v6(time: Time.now, node: nil, clock_sequence: nil)` | `Fast::UUID` | v1's timestamp reordered most-significant-first (RFC §5.6, the v1 migration version): the same node, clock sequence, variant and 100-ns resolution as v1, and it sorts chronologically where v1 does not. See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
 | `v7(time: Time.now)` | `Fast::UUID` | 48-bit big-endian `unix_ts_ms` from `time` (sub-millisecond input truncated), version 7, 12-bit `rand_a` and 62-bit `rand_b` fully random — 74 random bits, no counter, no shared state, thread-safe. See [How to generate deterministic UUIDs for tests](../how-to/generate-deterministic-uuids-for-tests.md). |
 | `generate` | `Fast::UUID` | v7, the RFC's recommended default. |
 
@@ -57,5 +59,5 @@ provenance and version are irrelevant to identity.
 |---|---|
 | `Fast::UUID::Error` (`< StandardError`) | The base class of every error this gem raises; rescue it to catch both of the below. |
 | `Fast::UUID::ParseError` (`< Fast::UUID::Error`) | `parse` was given a String that does not conform to the RFC §4 grammar, or `v3`/`v5` a namespace String that does not conform. |
-| `::TypeError` | `parse` was given a non-String, or `v3`/`v5` a non-String name or a namespace that is neither a `Fast::UUID` nor a String. |
+| `::TypeError` | `parse` was given a non-String, `v3`/`v5` a non-String name or a namespace that is neither a `Fast::UUID` nor a String, or `v1`/`v6` a `node` that is neither an Integer nor a 6-byte String or a `clock_sequence` that is not an Integer. |
 | `::ArgumentError` | `new` was given anything but a 16-byte String. |
