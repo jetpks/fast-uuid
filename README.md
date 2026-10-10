@@ -1,5 +1,8 @@
 # fast-uuid
 
+> **Alpha, pre-1.0.** The surface may still move between v0.x releases — pin the gem
+> if you ship on it before 1.0.
+
 RFC 9562 UUIDs for Ruby, pure Ruby with nothing on top of them: generate v4
 and v7 — as frozen value objects or as bare Strings (`Fast::UUID.uuid`,
 `uuid_v4`…`uuid_v7`) — the time-based v1 and v6, derive deterministic v3 and
