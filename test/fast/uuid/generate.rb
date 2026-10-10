@@ -119,6 +119,9 @@ describe Fast::UUID do
       expect(Fast::UUID.v6(time: time, clock_sequence: int_clock, node: int_node)).to be(:==, Fast::UUID.v6(**fields))
       expect(Fast::UUID.v1(time: time, clock_sequence: 0x33C8, node: mac_node)).to be(:==, Fast::UUID.v1(**fields))
       expect(Fast::UUID.v6(time: time, clock_sequence: 0x33C8, node: mac_node)).to be(:==, Fast::UUID.v6(**fields))
+
+      expect(Fast::UUID.v1(time: time, clock_sequence: 0x33C8, node: :abcdef))
+        .to be(:==, Fast::UUID.v1(time: time, clock_sequence: 0x33C8, node: "abcdef"))
     end
 
     it "truncates a Float node and clock_sequence the way Ruby converts Floats to Integers" do

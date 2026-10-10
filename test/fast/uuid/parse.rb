@@ -55,6 +55,7 @@ describe Fast::UUID do
       string = "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
       expect(Fast::UUID.parse?(string).version).to be(:==, 7)
       expect(Fast::UUID.parse?("gibberish")).to be_nil
+      expect(Fast::UUID.parse?(:"not-a-uuid")).to be_nil
       expect(Fast::UUID.parse?(42)).to be_nil
       expect(Fast::UUID.parse?(blank)).to be_nil
     end

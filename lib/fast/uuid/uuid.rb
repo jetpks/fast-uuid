@@ -53,7 +53,8 @@ module Fast
     # The node: nil draws a fresh CSPRNG value with the multicast bit set
     # (RFC §6.10), an Integer-like input masks to 48 bits, a string-like
     # input unpacks from its 6 binary bytes — the size is the requirement,
-    # not the class. The 48 bits travel as hex — a Q> would land past the
+    # not the class — and a Symbol goes by its #name, the frozen String it
+    # already carries. The 48 bits travel as hex — a Q> would land past the
     # immediate Integers three times in four and cost an object when it
     # does.
     def self.node_id(node)
@@ -66,6 +67,8 @@ module Fast
         raise TypeError, "a 6-byte node String is required (got #{node.bytesize} bytes)" unless node.bytesize == 6
 
         node.b.unpack1("H12").to_i(16)
+      when Symbol
+        node_id(node.name)
       else
         return node.to_int & 0xFFFFFFFFFFFF if defined?(node.to_int)
         return node_id(node.to_s) if defined?(node.to_s)
@@ -228,13 +231,16 @@ module Fast
     private_class_method :v4_bytes, :v7_bytes, :v1_bytes, :v6_bytes, :v3_bytes, :v5_bytes,
                          :stamp, :canonical
 
-    # The String a parse or valid? input carries: a String is itself, anything
-    # responding to #to_s converts, anything else has no string form. A
-    # BasicObject descendant has no #is_a?, #class or #respond_to? either, so
-    # the probe is defined? — and the TypeError cannot name the class.
+    # The String a parse or valid? input carries: a String is itself, a
+    # Symbol's frozen #name is already the String it carries — no #to_s
+    # copy — anything else responding to #to_s converts, anything else has
+    # no string form. A BasicObject descendant has no #is_a?, #class or
+    # #respond_to? either, so the probe is defined? — and the TypeError
+    # cannot name the class.
     def self.implicit_string(str)
       raise TypeError, "no implicit conversion into Fast::UUID" unless defined?(str.to_s)
 
+      str = str.name if str.is_a?(Symbol)
       str = str.to_s unless str.is_a?(String)
       str
     end
