@@ -74,12 +74,12 @@ against `securerandom`, parsing against `uuidtools` (Ruby 4.0.7; conditions,
 the allocation columns and how to reproduce on the
 [benchmarks page](docs/explanation/benchmarks.md)):
 
-- Generation is **ahead of the stdlib String for v4, within 8% for v7** —
-  0.77M vs 0.74M i/s for v4, 0.69M vs 0.75M for v7, at half or fewer of the
-  objects — and the String forms win outright: `uuid_v4` 0.83M vs 0.74M with a
-  quarter of the objects, `uuid_v7` 0.73M vs 0.75M with two fifths.
-- Parsing is **3x faster than uuidtools with 4.5x fewer objects** — 1.49M vs
-  0.48M i/s, 6 objects per call against 27 — because it is a grammar check and
+- Generation is **ahead of the stdlib String for v4, within 10% for v7** —
+  0.65M vs 0.64M i/s for v4, 0.58M vs 0.65M for v7, at half or fewer of the
+  objects — and the String forms win outright: `uuid_v4` 0.72M vs 0.64M with a
+  quarter of the objects, `uuid_v7` 0.64M vs 0.65M — parity — with two fifths.
+- Parsing is **2.7x faster than uuidtools with 4.5x fewer objects** — 1.14M vs
+  0.42M i/s, 6 objects per call against 27 — because it is a grammar check and
   one `pack`, not a decoded field graph.
 
 ## Documentation
