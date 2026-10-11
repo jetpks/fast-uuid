@@ -45,7 +45,7 @@ Fast::UUID has no dependencies and is implemented in pure Ruby.
 require "fast/uuid"
 
 uuid = Fast::UUID.generate            # v7, the RFC's recommended default
-Fast::UUID.uuid_v4                    # => "b4c7b0f1-…", or uuid_v1…uuid_v7 — the object twins' canonical String, object skipped
+Fast::UUID.uuid_v4                    # => "b4c7b0f1-…", or uuid_v1 - uuid_v7. Returns a String just like SecureRandom
 Fast::UUID.parse(uuid.to_s) == uuid   # => true, from any conforming String, any case
 Fast::UUID.v4.version                 # => 4
 Fast::UUID.v7.timestamp               # => a UTC Time, the 48-bit unix_ts_ms
@@ -55,15 +55,14 @@ Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com").to_s
 sorted = [Fast::UUID.v7, Fast::UUID.v7].sort  # v7 sorts chronologically, RFC 6.11
 ```
 
-`Fast::UUID.parse` raises `Fast::UUID::ParseError` for anything the RFC 4
-grammar rejects and `TypeError` for an object with no `to_s`; `parse?` and `valid?` are
-the non-raising forms. Validity is the grammar and nothing more — every
-version and variant parses, Nil and Max included.
+`Fast::UUID.parse` raises `Fast::UUID::ParseError` for anything the RFC
+4 grammar rejects and `TypeError` for an object with no `to_s`; `parse?`
+and `valid?` are the non-raising forms. Every version and variant
+parses, Nil and Max included.
 
 One caveat the RFC does not decide for you: opaque byte order makes v6 and
-v7 sort chronologically, but **v1 does not** — its `time_low` field sits
-first in the byte string, so v1 UUIDs sort in a scrambled order. The
-[tutorial](docs/tutorials/generate-parse-and-sort-uuids.md) walks the whole
+v7 sort chronologically, but **v1 does not**. The
+[tutorial](docs/tutorials/generate-parse-and-sort-uuids.md) walks through the whole
 story: generate, parse, introspect, sort, and a request-ID module at the end
 of it.
 
