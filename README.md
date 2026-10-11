@@ -7,13 +7,23 @@ A UUID library for Ruby that is fast, complete, and RFC 9562-compliant.
 Fast::UUID provides drop-in, api-compatible replacements for `SecureRandom`'s `.uuid_v4` and `.uuid_v7` that are as fast (within 2%) or faster while allocating half as many objects or fewer while using the same source of entropy.
 
 ```ruby
-# conversion example goes here
+# before
+SecureRandom.uuid_v4   # => "cdbb6d1f-…"
+SecureRandom.uuid_v7   # => "01a12861-…"
+
+# after — the same calls, the same entropy, frozen, half the objects or fewer
+Fast::UUID.uuid_v4     # => "e74ce176-…"
+Fast::UUID.uuid_v7     # => "01a12861-…"
 ```
 
 Fast::UUID can also return immutable `Fast::UUID` objects that are directly `Comparable`. These also allocate fewer objects than `SecureRandom`'s `.uuid_v4` and `.uuid_v7`.
 
 ```ruby
-# comparable demo goes here
+a = Fast::UUID.v7(time: Time.utc(2026, 10, 10))
+b = Fast::UUID.v7(time: Time.utc(2026, 10, 11))
+a < b                          # => true — v7 byte order is time order
+[a, b].max.timestamp           # => 2026-10-11 00:00:00 UTC
+Fast::UUID.parse(a.to_s) == a  # => true — identity is the 128-bit value alone
 ```
 
 Fast::UUID's goal is to cover every UUID use-case a project could have in a way that is correct and of course, fast.
