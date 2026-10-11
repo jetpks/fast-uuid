@@ -84,7 +84,7 @@ Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com").to_s
 Nothing is random, so nothing needs remembering: no storage, no coordination, no
 registry. The derived ID is a pure function of its input, which is reproducible
 identity in production and a fixture you can assert on in tests
-([How to generate deterministic UUIDs](../how-to/generate-deterministic-uuids-for-tests.md)
+([How to generate deterministic UUIDs](../how-to/generate-deterministic-uuids.md)
 works this vein).
 
 ## Pure randomness, when that is the ask
