@@ -1,36 +1,33 @@
 # fast-uuid
 
-> **Alpha, pre-1.0.** The API surface may still move between v0.x and v1.0.
+> **Status:** _Alpha, pre-1.0_ The API surface may still move between v0.x and v1.0.
 
-RFC 9562 UUIDs for Ruby, pure Ruby with nothing on top of them: generate v4
-and v7 — as frozen value objects or as bare Strings (`Fast::UUID.uuid`,
-`uuid_v4`…`uuid_v7`) — the time-based v1 and v6, derive deterministic v3 and
-v5 from a namespace and a name, parse and validate every version and variant,
-and compare UUIDs as the opaque 128-bit values they are.
+A UUID library for Ruby that is fast, complete, and RFC 9562-compliant.
 
-A UUID is an identifier you *construct*, with properties you choose. v1 and v6 embed a
-60-bit Gregorian timestamp and v7 a 48-bit Unix one — `#timestamp` reads it back. v6
-and v7 sort chronologically as raw bytes, so a column of them is a timeline its index
-maintains for free. v3 and v5 derive deterministically from a namespace and a name:
-same input, same UUID, across processes, machines and years, with no storage. And v4
-is 122 bits of CSPRNG when opaque randomness is the point. [What a UUID is, and what
-its versions are](docs/explanation/uuid-versions.md) is the tour of what that buys
-you.
+Fast::UUID provides drop-in, api-compatible replacements for `SecureRandom`'s `.uuid_v4` and `.uuid_v7` that are as fast (within 2%) or faster while allocating half as many objects or fewer while using the same source of entropy.
 
-The goal is a nice, fast, consistent interface that covers everything you
-might want to do with a UUID: the RFC end-to-end, zero dependencies, proven
-in-suite against the RFC's own Appendix A test vectors. The established
-options each cover part of that surface — `securerandom` ships `uuid_v4` and
-`uuid_v7` as Strings, `uuidtools` covers parsing and most of the versions,
-`uuid` is archived — and fast-uuid brings the whole of it under one interface.
+```ruby
+# conversion example goes here
+```
+
+Fast::UUID can also return immutable `Fast::UUID` objects that are directly `Comparable`. These also allocate fewer objects than `SecureRandom`'s `.uuid_v4` and `.uuid_v7`.
+
+```ruby
+# comparable demo goes here
+```
+
+Fast::UUID's goal is to cover every UUID use-case a project could have in a way that is correct and of course, fast.
 
 ## Installation
+
+Add to your Gemfile:
 
 ```ruby
 gem "fast-uuid"
 ```
+and `require "fast/uuid"`.
 
-`require "fast/uuid"` has no dependencies.
+Fast::UUID has no dependencies and is implemented in pure Ruby.
 
 ## Quickstart
 
