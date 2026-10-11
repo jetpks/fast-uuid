@@ -8,8 +8,8 @@ provenance and version are irrelevant to identity.
 
 The six versions answer different questions, and the constructors mirror them. If you
 don't yet know which one you want, [How to choose a UUID version](../how-to/choose-a-uuid-version.md)
-walks the decision; [Why a UUID is not a sha256sum](../explanation/uuid-versions.md) is
-the why behind it.
+walks the decision; [What a UUID is, and what its versions
+are](../explanation/uuid-versions.md) is the why behind it.
 
 ## Class methods
 

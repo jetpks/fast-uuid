@@ -42,9 +42,8 @@ Fast::UUID.v7(time: Time.utc(2024, 1, 15, 12, 0, 0)).timestamp
 Fast::UUID.v4.timestamp # => nil, randomness carries no time
 ```
 
-A sha256sum of the same content hashes the same tomorrow as today; it cannot tell you
-when anything happened. A v1, v6 or v7 UUID can — generate, store, parse years later by
-a process that has never seen the generating clock, and ask when. v1 and v6 answer to
+The time is in the identifier itself: generate, store, parse years later by a process
+that has never seen the generating clock, and ask when. v1 and v6 answer to
 100 ns, v7 to the millisecond.
 
 ## Natural sorting

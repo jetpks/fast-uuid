@@ -8,14 +8,14 @@ and v7 — as frozen value objects or as bare Strings (`Fast::UUID.uuid`,
 v5 from a namespace and a name, parse and validate every version and variant,
 and compare UUIDs as the opaque 128-bit values they are.
 
-A UUID is not a sha256sum. A digest is an opaque checksum *of* content; a UUID is an
-identifier you *construct* with chosen properties. v1 and v6 embed a 60-bit Gregorian
-timestamp and v7 a 48-bit Unix one — `#timestamp` reads it back. v6 and v7 sort
-chronologically as raw bytes, so a column of them is a timeline its index maintains for
-free. v3 and v5 derive deterministically from a namespace and a name: same input, same
-UUID, across processes, machines and years, with no storage. And v4 is 122 bits of
-CSPRNG when opaque randomness is the point. [Why a UUID is not a
-sha256sum](docs/explanation/uuid-versions.md) is the tour of what that buys you.
+A UUID is an identifier you *construct*, with properties you choose. v1 and v6 embed a
+60-bit Gregorian timestamp and v7 a 48-bit Unix one — `#timestamp` reads it back. v6
+and v7 sort chronologically as raw bytes, so a column of them is a timeline its index
+maintains for free. v3 and v5 derive deterministically from a namespace and a name:
+same input, same UUID, across processes, machines and years, with no storage. And v4
+is 122 bits of CSPRNG when opaque randomness is the point. [What a UUID is, and what
+its versions are](docs/explanation/uuid-versions.md) is the tour of what that buys
+you.
 
 The goal is a nice, fast, consistent interface that covers everything you
 might want to do with a UUID: the RFC end-to-end, zero dependencies, proven
@@ -95,7 +95,7 @@ the allocation columns and how to reproduce on the
 
 ### Explanation
 
-- [Why a UUID is not a sha256sum](docs/explanation/uuid-versions.md) — the versions explained: embedded time, natural sorting, name-derived determinism, and randomness as one option among five.
+- [What a UUID is, and what its versions are](docs/explanation/uuid-versions.md) — embedded time, natural sorting, name-derived determinism, and randomness as one option among five.
 - [Why validity is the grammar and nothing more](docs/explanation/validity.md) — why no version or variant gate: the RFC defines none, and Nil and Max sit outside the 10xx variant by design.
 - [In what order UUIDs sort](docs/explanation/comparison-order.md) — opaque bytes per RFC §6.11, v6/v7 chronological, v1 anti-chronological.
 - [Benchmarks](docs/explanation/benchmarks.md) — generation against securerandom, parsing against uuidtools, and how to reproduce them.

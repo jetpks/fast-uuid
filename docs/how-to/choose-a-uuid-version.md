@@ -63,5 +63,5 @@ is one call and a link to the piece that goes deeper.
 
 The decision in one line: **v7 unless you need determinism (v5) or nothing but
 uniqueness (v4); v6 and v1 only at a v1 boundary.** The why — what each version's
-structure buys, and why a UUID is not a sha256sum — is
+structure buys — is
 [What a UUID is, and what its versions are](../explanation/uuid-versions.md).
