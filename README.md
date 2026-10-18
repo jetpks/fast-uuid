@@ -2,13 +2,11 @@
 
 fast-uuid is a pure Ruby UUID library with no dependencies.
 
-fast-uuid **allocates half or fewer** objects per generation compared to Ruby's `SecureRandom`. [Benchmarks](docs/explanation/performance.md)
-
-fast-uuid is drop-in, api-compatible with `SecureRandom`. [Migrate](docs/how-to-guides/replace-securerandom.md)
-
-fast-uuid is [RFC 9562](https://www.rfc-editor.org/info/rfc9562/) compliant and covers all UUID versions: v1, v3, v4, v5, v6, and v7
-
-fast-uuid has immutable & comparable value objects that can be used as Hash keys. [Sort and compare](docs/how-to-guides/sort-and-compare.md)
+- **Allocates half or fewer** objects per generation compared to Ruby's `SecureRandom`. [Benchmarks](docs/explanation/performance.md).
+- drop-in & api-compatible with `SecureRandom`. [Migration guide](docs/how-to-guides/replace-securerandom.md).
+- [RFC 9562 compliant](https://www.rfc-editor.org/info/rfc9562/)
+- Covers all UUID versions: v1, v3, v4, v5, v6, and v7
+- Offers immutable comparable value objects that can be used as Hash keys. See [Sort and compare](docs/how-to-guides/sort-and-compare.md)
 
 ## Installation
 
