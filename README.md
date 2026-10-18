@@ -8,29 +8,11 @@ fast-uuid is a pure Ruby UUID library with no dependencies.
 - Covers all UUID versions: v1, v3, v4, v5, v6, and v7
 - Offers immutable comparable value objects that can be used as Hash keys. See [Sort and compare](docs/how-to-guides/sort-and-compare.md)
 
-## Installation
+## Quickstart
 
-Install from RubyGems:
-
-```sh
-gem install fast-uuid
-```
-
-Gemfile:
-
-```ruby
-gem "fast-uuid"
-```
-
-Require path:
-
-```ruby
-require "fast/uuid"
-```
+Install from RubyGems `gem install fast-uuid` or add `gem "fast-uuid"` to your Gemfile & `bundle`.
 
 The require is `fast/uuid`, not `fast-uuid`. Requires Ruby `>= 3.3`.
-
-## Quickstart
 
 ```ruby
 require "fast/uuid"
