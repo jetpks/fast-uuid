@@ -231,13 +231,13 @@ This:
 
 ### vs Other UUID Gems
 
-Most other UUID gems:
-- Have external dependencies (C extensions, FFI)
-- Don't support all RFC 9562 versions
-- Have higher allocation counts
-- Are less actively maintained
+The bundled benchmark measures SecureRandom and uuidtools only. Ruby's
+ecosystem has other UUID gems, most written before RFC 9562 and without
+v6/v7 support; their costs and dependencies vary — measure on your own
+workload before choosing.
 
-**Conclusion**: fast-uuid provides the best combination of performance, features, and simplicity.
+**Conclusion**: among the benchmarked options, fast-uuid offers full RFC
+9562 coverage, zero dependencies, and the lowest measured allocations.
 
 ## Performance Tips
 

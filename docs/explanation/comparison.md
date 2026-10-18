@@ -4,13 +4,13 @@ This document compares fast-uuid with other UUID libraries available for Ruby, h
 
 ## Overview
 
-| Library | Versions | Dependencies | Key Features | Performance |
-|---------|----------|--------------|--------------|-------------|
-| **fast-uuid** | v1, v3, v4, v5, v6, v7 | Zero | RFC 9562 compliant, immutable, minimal allocations | ⭐⭐⭐⭐⭐ |
-| SecureRandom | v4, v7 | Zero (stdlib) | Simple string generation | ⭐⭐⭐ |
-| uuidtools | v1, v3, v4, v5 | uuidtools gem | Full-featured, parsing | ⭐⭐ |
-| ruby-uuid | v1, v3, v4, v5 | ruby-uuid gem | C extension, fast | ⭐⭐⭐⭐ |
-| guid | v4 only | guid gem | Simple, Rails-focused | ⭐ |
+| Library | Versions | Dependencies | Key Features |
+|---------|----------|--------------|--------------|
+| **fast-uuid** | v1, v3, v4, v5, v6, v7 | Zero | RFC 9562 compliant, immutable, minimal allocations |
+| SecureRandom | v4, v7 | Zero (stdlib) | Simple string generation |
+| uuidtools | v1, v3, v4, v5 | Zero runtime deps (a gem install) | Full-featured, parsing |
+
+The comparison below covers SecureRandom and uuidtools — the two libraries the bundled benchmark measures. Other UUID gems exist on rubygems.org, but most predate RFC 9562 and lack v6/v7 support.
 
 ## Detailed Comparison
 
@@ -92,8 +92,8 @@ UUIDTools::UUID.md5_create(namespace, name)  # v3
 # Parsing
 UUIDTools::UUID.parse("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
 
-# Validation
-UUIDTools::UUID.valid?("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
+# Validation (an instance method; #parse raises ArgumentError on garbage)
+UUIDTools::UUID.parse("017f22e2-79b0-7cc3-98c4-dc0c0c07398f").valid?
 ```
 
 #### Comparison
@@ -105,11 +105,9 @@ UUIDTools::UUID.valid?("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
 | **Return type** | Value object or String | UUIDTools::UUID object |
 | **Parsing speed** | ~2.7x faster | Baseline |
 | **Parsing allocations** | 6 objects | 27 objects |
-| **Generation speed** | Faster | Slower |
-| **Dependencies** | Zero | uuidtools gem |
-| **RFC 9562 compliance** | Full | Good |
+| **Dependencies** | Zero (stdlib only) | Zero runtime deps (a gem install) |
+| **RFC 9562 compliance** | Full | Partial (no v6/v7) |
 | **API style** | Modern Ruby | Older style |
-| **Maintenance** | Active | Less active |
 
 #### When to Use UUIDTools
 
@@ -139,108 +137,25 @@ uuid = Fast::UUID.v1
 uuid = Fast::UUID.parse("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
 ```
 
-### fast-uuid vs ruby-uuid
-
-**ruby-uuid** is a C extension gem for UUID generation.
-
-#### What ruby-uuid Provides
-
-```ruby
-# Generation
-UUID.new  # v4
-UUID.timestamp  # v1
-UUID.v3(namespace, name)
-UUID.v5(namespace, name)
-
-# Parsing
-UUID.parse("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
-```
-
-#### Comparison
-
-| Feature | fast-uuid | ruby-uuid |
-|---------|-----------|-----------|
-| **Implementation** | Pure Ruby | C extension |
-| **Versions** | v1, v3, v4, v5, v6, v7 | v1, v3, v4, v5 |
-| **v7 support** | Yes | No |
-| **v6 support** | Yes | No |
-| **Dependencies** | Zero | ruby-uuid gem (C extension) |
-| **Installation** | Simple | Requires C compiler |
-| **Portability** | Any Ruby | Limited (C extension) |
-| **Performance** | Very fast | Faster (C) |
-| **Parsing** | Yes | Yes |
-| **Value objects** | Yes (immutable) | Yes |
-
-#### When to Use ruby-uuid
-
-- You need absolute maximum performance
-- You're comfortable with C extensions
-- You don't need v6 or v7
-- You're on a platform with a C compiler
-
-#### When to Use fast-uuid
-
-- You want pure Ruby (no C extensions)
-- You need v6 or v7 support
-- You want zero external dependencies
-- You want better portability
-- You prefer the performance to be "fast enough" (fast-uuid is still very fast)
-
-### fast-uuid vs guid
-
-**guid** is a simple UUID v4 generator for Rails.
-
-#### What guid Provides
-
-```ruby
-# Generation
-Guid.new  # v4 as string
-Guid.raw  # v4 as raw bytes
-```
-
-#### Comparison
-
-| Feature | fast-uuid | guid |
-|---------|-----------|------|
-| **Versions** | v1, v3, v4, v5, v6, v7 | v4 only |
-| **Return type** | Value object or String | String only |
-| **Parsing** | Yes | No |
-| **Dependencies** | Zero | guid gem |
-| **Rails integration** | No | Yes |
-| **Performance** | Faster | Slower |
-
-#### When to Use guid
-
-- You're using Rails and want Rails integration
-- You only need v4 UUIDs
-- You want a simple, Rails-focused API
-
-#### When to Use fast-uuid
-
-- You need any UUID version beyond v4
-- You need parsing or validation
-- You want better performance
-- You're not using Rails or don't need Rails integration
-
 ## Feature Matrix
 
-| Feature | fast-uuid | SecureRandom | UUIDTools | ruby-uuid | guid |
-|---------|-----------|--------------|-----------|-----------|------|
-| v1 generation | ✅ | ❌ | ✅ | ✅ | ❌ |
-| v3 generation | ✅ | ❌ | ✅ | ✅ | ❌ |
-| v4 generation | ✅ | ✅ | ✅ | ✅ | ✅ |
-| v5 generation | ✅ | ❌ | ✅ | ✅ | ❌ |
-| v6 generation | ✅ | ❌ | ❌ | ❌ | ❌ |
-| v7 generation | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Parsing | ✅ | ❌ | ✅ | ✅ | ❌ |
-| Validation | ✅ | ❌ | ✅ | ✅ | ❌ |
-| Timestamp extraction | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Value objects | ✅ | ❌ | ✅ | ✅ | ❌ |
-| Immutable | ✅ | N/A | ❌ | ✅ | N/A |
-| Comparable | ✅ | N/A | ❌ | ✅ | N/A |
-| Zero dependencies | ✅ | ✅ (stdlib) | ❌ | ❌ | ❌ |
-| Pure Ruby | ✅ | ✅ | ✅ | ❌ | ✅ |
-| RFC 9562 compliant | ✅ | Partial | ✅ | ✅ | ❌ |
+| Feature | fast-uuid | SecureRandom | UUIDTools |
+|---------|-----------|--------------|-----------|
+| v1 generation | ✅ | ❌ | ✅ |
+| v3 generation | ✅ | ❌ | ✅ |
+| v4 generation | ✅ | ✅ | ✅ |
+| v5 generation | ✅ | ❌ | ✅ |
+| v6 generation | ✅ | ❌ | ❌ |
+| v7 generation | ✅ | ✅ | ❌ |
+| Parsing | ✅ | ❌ | ✅ |
+| Validation | ✅ | ❌ | ✅ (instance `#valid?`) |
+| Timestamp extraction | ✅ (v1, v6, v7) | ❌ | ✅ (v1/v6 `#timestamp`) |
+| Value objects | ✅ | ❌ | ✅ |
+| Immutable | ✅ | N/A | ❌ |
+| Comparable | ✅ | N/A | ✅ |
+| Zero runtime dependencies | ✅ | ✅ (stdlib) | ✅ (a gem install) |
+| Pure Ruby | ✅ | ✅ | ✅ |
+| RFC 9562 compliant | ✅ | Partial (v4/v7 only) | Partial (no v6/v7) |
 
 ## Performance Comparison
 
@@ -318,19 +233,6 @@ hardware):
 - Don't need **v6 or v7**
 - Don't mind **slower parsing**
 
-### Use ruby-uuid if you:
-
-- Need **absolute maximum performance**
-- Are okay with **C extensions**
-- Don't need **v6 or v7**
-- Have a **C compiler** available
-
-### Use guid if you:
-
-- Are using **Rails**
-- Only need **v4 UUIDs**
-- Want **Rails integration**
-
 ## Migration Guide
 
 ### From SecureRandom
@@ -354,39 +256,13 @@ No other changes needed for basic usage.
 UUIDTools::UUID.random_create
 UUIDTools::UUID.timestamp_create
 UUIDTools::UUID.parse(str)
-UUIDTools::UUID.valid?(str)
+UUIDTools::UUID.parse(str).valid?  # instance method; #parse raises on garbage
 
 # After
 Fast::UUID.v4
 Fast::UUID.v1
 Fast::UUID.parse(str)
 Fast::UUID.valid?(str)
-```
-
-### From ruby-uuid
-
-```ruby
-# Before
-UUID.new
-UUID.timestamp
-UUID.parse(str)
-
-# After
-Fast::UUID.v4
-Fast::UUID.v1
-Fast::UUID.parse(str)
-```
-
-### From guid
-
-```ruby
-# Before
-Guid.new
-
-# After
-Fast::UUID.uuid_v4
-# or
-Fast::UUID.v4.to_s
 ```
 
 ## Summary
@@ -396,8 +272,6 @@ Fast::UUID.v4.to_s
 | General purpose UUIDs | **fast-uuid** |
 | Simple v4/v7 strings | SecureRandom |
 | Legacy code using UUIDTools | fast-uuid (migrate) |
-| Maximum performance, C okay | ruby-uuid |
-| Rails v4 UUIDs | guid or fast-uuid |
 | Full RFC 9562 compliance | **fast-uuid** |
 | Zero dependencies | **fast-uuid** or SecureRandom |
 | Pure Ruby | **fast-uuid** or SecureRandom |
