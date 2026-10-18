@@ -60,29 +60,31 @@ bundle exec ruby benchmark/uuid.rb
 BENCH_QUICK=1 bundle exec ruby benchmark/uuid.rb
 ```
 
-### Sample Results (Ruby 4.0.7)
+### Measured Results (Ruby 4.0.7, arm64-darwin23)
 
-The benchmark outputs a table like:
+Representative output of the full 5-second benchmark on Ruby 4.0.7
+(arm64-darwin23). Absolute numbers vary by machine and Ruby build; rerun
+the benchmark on your own hardware for figures you can rely on.
 
 ```
 | operation | i/s | ±% | objects/call |
 |---|---|---|---|
-| Fast::UUID.uuid_v4 => String | 1,234,567 | 1.23 | 2.00 |
-| SecureRandom.uuid_v4 => String | 987,654 | 2.34 | 3.00 |
-| Fast::UUID.uuid_v7 => String | 1,123,456 | 1.45 | 4.00 |
-| SecureRandom.uuid_v7 => String | 950,000 | 2.10 | 5.00 |
-| Fast::UUID.v7 => Fast::UUID | 876,543 | 1.56 | 6.00 |
-| Fast::UUID.v4 => Fast::UUID | 1,023,456 | 1.34 | 4.00 |
-| Fast::UUID.parse | 2,345,678 | 0.98 | 6.00 |
-| UUIDTools::UUID.parse | 456,789 | 3.21 | 12.00 |
+| Fast::UUID.uuid_v4 => String | 777,208 | 4.28 | 2.00 |
+| SecureRandom.uuid_v4 => String | 696,134 | 4.14 | 8.00 |
+| Fast::UUID.uuid_v7 => String | 695,550 | 3.98 | 4.00 |
+| SecureRandom.uuid_v7 => String | 706,356 | 4.06 | 10.00 |
+| Fast::UUID.v7 => Fast::UUID | 635,790 | 4.12 | 6.00 |
+| Fast::UUID.v4 => Fast::UUID | 711,283 | 3.74 | 4.00 |
+| Fast::UUID.parse | 1,249,527 | 3.99 | 6.00 |
+| UUIDTools::UUID.parse | 455,387 | 3.92 | 27.00 |
 ```
 
 ### Key Findings
 
-1. **String generation (v4)**: fast-uuid is ~25-30% faster than `SecureRandom.uuid_v4` with ~33% fewer allocations
-2. **String generation (v7)**: fast-uuid is ~18-22% faster than `SecureRandom.uuid_v7` with ~20% fewer allocations
-3. **Parsing**: fast-uuid is ~5x faster than UUIDTools with ~50% fewer allocations
-4. **Value object generation**: fast-uuid's v4 and v7 are competitive with SecureRandom's string methods despite the object overhead
+1. **String generation (v4)**: fast-uuid is ~12% faster than `SecureRandom.uuid_v4` with 4x fewer allocations (2 vs 8 objects)
+2. **String generation (v7)**: throughput is on par with `SecureRandom.uuid_v7` (within the ~4% error margin), with 2.5x fewer allocations (4 vs 10 objects)
+3. **Parsing**: fast-uuid is ~2.7x faster than UUIDTools with ~4.5x fewer allocations (6 vs 27 objects)
+4. **Value object generation**: fast-uuid's v4 and v7 value objects stay within ~10% of the plain-String paths despite the object overhead
 
 ## Implementation Techniques
 
@@ -208,20 +210,20 @@ This:
 
 | Aspect | fast-uuid | SecureRandom |
 |--------|-----------|--------------|
-| v4 String | Faster (~25-30%) | Baseline |
-| v7 String | Faster (~18-22%) | Baseline |
-| Allocations | Lower | Higher |
+| v4 String | ~12% faster | Baseline |
+| v7 String | On par (within error) | Baseline |
+| Allocations | 2-6 per operation | 8-10 per operation |
 | API | Rich (value objects, parsing) | Limited (strings only) |
 | RFC Compliance | Full (all versions) | Partial (v4, v7 only) |
 
-**Conclusion**: fast-uuid is faster and more feature-rich than SecureRandom for UUID operations.
+**Conclusion**: fast-uuid matches or beats SecureRandom for UUID operations, with far fewer allocations, and is more feature-rich.
 
 ### vs UUIDTools
 
 | Aspect | fast-uuid | UUIDTools |
 |--------|-----------|-----------|
-| Parsing | ~5x faster | Baseline |
-| Allocations | ~50% lower | Higher |
+| Parsing | ~2.7x faster | Baseline |
+| Allocations | 6 objects vs 27 | Baseline |
 | Dependencies | Zero | Has dependencies |
 | API | Modern Ruby | Older API |
 
@@ -325,4 +327,7 @@ fast-uuid achieves its performance through:
 4. **Zero dependencies** — Only uses Ruby's standard library
 5. **Frozen objects** — Immutable UUIDs and strings enable optimizations
 
-The result is a gem that is **faster than SecureRandom** for string generation and **5x faster than UUIDTools** for parsing, while providing a richer API and full RFC 9562 compliance.
+The result is a gem that matches or beats `SecureRandom` for string
+generation while allocating a fraction of the objects, and is **~2.7x
+faster than UUIDTools** for parsing, while providing a richer API and
+full RFC 9562 compliance.

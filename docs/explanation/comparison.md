@@ -38,10 +38,10 @@ SecureRandom.uuid_v7  # => "018e312f-4b1e-7000-8000-000000000000"
 | **Validation** | Yes | No |
 | **Timestamp extraction** | Yes (v1, v6, v7) | No |
 | **Comparison** | Yes (full Comparable) | No (strings only) |
-| **v4 speed** | ~25-30% faster | Baseline |
-| **v7 speed** | ~18-22% faster | Baseline |
-| **Allocations (v4)** | 2 (string) / 4 (object) | 3 (string) |
-| **Allocations (v7)** | 4 (string) / 6 (object) | 5 (string) |
+| **v4 speed** | ~12% faster | Baseline |
+| **v7 speed** | On par (within error) | Baseline |
+| **Allocations (v4)** | 2 (string) / 4 (object) | 8 (string) |
+| **Allocations (v7)** | 4 (string) / 6 (object) | 10 (string) |
 | **Dependencies** | Zero | Zero (stdlib) |
 | **RFC 9562 compliance** | Full | Partial |
 
@@ -103,8 +103,8 @@ UUIDTools::UUID.valid?("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
 | **Versions** | v1, v3, v4, v5, v6, v7 | v1, v3, v4, v5 |
 | **v7 support** | Yes | No |
 | **Return type** | Value object or String | UUIDTools::UUID object |
-| **Parsing speed** | ~5x faster | Baseline |
-| **Parsing allocations** | ~6 objects | ~12 objects |
+| **Parsing speed** | ~2.7x faster | Baseline |
+| **Parsing allocations** | 6 objects | 27 objects |
 | **Generation speed** | Faster | Slower |
 | **Dependencies** | Zero | uuidtools gem |
 | **RFC 9562 compliance** | Full | Good |
@@ -244,50 +244,52 @@ Guid.raw  # v4 as raw bytes
 
 ## Performance Comparison
 
-Based on the benchmark script included with fast-uuid:
+Based on the benchmark script included with fast-uuid (measured on Ruby 4.0.7,
+arm64-darwin23; absolute numbers vary by machine — rerun it on your own
+hardware):
 
 ### String Generation (v4)
 
 ```
 | Library | i/s | Allocations |
 |--------|-----|-------------|
-| fast-uuid.uuid_v4 | ~1,200,000 | 2 |
-| SecureRandom.uuid_v4 | ~900,000 | 3 |
+| fast-uuid.uuid_v4 | ~777,000 | 2 |
+| SecureRandom.uuid_v4 | ~696,000 | 8 |
 ```
 
-**fast-uuid is ~33% faster with 33% fewer allocations**
+**fast-uuid is ~12% faster with 4x fewer allocations**
 
 ### String Generation (v7)
 
 ```
 | Library | i/s | Allocations |
 |--------|-----|-------------|
-| fast-uuid.uuid_v7 | ~1,100,000 | 4 |
-| SecureRandom.uuid_v7 | ~900,000 | 5 |
+| fast-uuid.uuid_v7 | ~696,000 | 4 |
+| SecureRandom.uuid_v7 | ~706,000 | 10 |
 ```
 
-**fast-uuid is ~22% faster with 20% fewer allocations**
+**fast-uuid matches SecureRandom throughput (within the ~4% error margin) with 2.5x fewer allocations**
 
 ### Parsing
 
 ```
 | Library | i/s | Allocations |
 |--------|-----|-------------|
-| fast-uuid.parse | ~2,300,000 | 6 |
-| UUIDTools::UUID.parse | ~450,000 | 12 |
+| fast-uuid.parse | ~1,250,000 | 6 |
+| UUIDTools::UUID.parse | ~455,000 | 27 |
 ```
 
-**fast-uuid is ~5x faster with ~50% fewer allocations**
+**fast-uuid is ~2.7x faster with ~4.5x fewer allocations**
 
 ### Value Object Generation (v7)
 
 ```
 | Library | i/s | Allocations |
 |--------|-----|-------------|
-| fast-uuid.v7 | ~870,000 | 6 |
+| fast-uuid.v7 | ~636,000 | 6 |
 ```
 
-**fast-uuid value objects are competitive with SecureRandom's string methods**
+**fast-uuid value objects stay within ~10% of the plain-String paths**
 
 ## Recommendations
 
