@@ -1,116 +1,64 @@
 # fast-uuid
 
-> **Status:** _Alpha, pre-1.0_ The API surface may still move between v0.x and v1.0.
+fast-uuid is a pure Ruby UUID library with no dependencies.
 
-A UUID library for Ruby that is fast, complete, and RFC 9562-compliant.
-
-Fast::UUID provides drop-in, api-compatible replacements for `SecureRandom`'s `.uuid_v4` and `.uuid_v7` that are as fast (within 2%) or faster while allocating half as many objects or fewer while using the same source of entropy.
-
-```ruby
-# before
-SecureRandom.uuid_v4   # => "cdbb6d1f-…"
-SecureRandom.uuid_v7   # => "01a12861-…"
-
-# after — the same calls, the same entropy, frozen, half the objects or fewer
-Fast::UUID.uuid_v4     # => "e74ce176-…"
-Fast::UUID.uuid_v7     # => "01a12861-…"
-```
-
-Fast::UUID can also return immutable `Fast::UUID` objects that are directly `Comparable`. These also allocate fewer objects than `SecureRandom`'s `.uuid_v4` and `.uuid_v7`.
-
-```ruby
-a = Fast::UUID.v7(time: Time.utc(2026, 10, 10))
-b = Fast::UUID.v7(time: Time.utc(2026, 10, 11))
-a < b                          # => true — v7 byte order is time order
-[a, b].max.timestamp           # => 2026-10-11 00:00:00 UTC
-Fast::UUID.parse(a.to_s) == a  # => true — identity is the 128-bit value alone
-```
-
-Fast::UUID's goal is to cover every UUID use-case a project could have in a way that is correct and of course, fast.
-
-## Installation
-
-Add to your Gemfile:
-
-```ruby
-gem "fast-uuid"
-```
-and `require "fast/uuid"`.
-
-Fast::UUID has no dependencies and is implemented in pure Ruby.
+- **Allocates half or fewer** objects per generation compared to Ruby's `SecureRandom`. [Benchmarks](docs/explanation/performance.md).
+- drop-in & api-compatible with `SecureRandom`. [Migration guide](docs/how-to-guides/replace-securerandom.md).
+- [RFC 9562 compliant](https://www.rfc-editor.org/info/rfc9562/)
+- Covers all UUID versions: v1, v3, v4, v5, v6, and v7
+- Offers immutable comparable value objects that can be used as Hash keys. See [Sort and compare](docs/how-to-guides/sort-and-compare.md)
 
 ## Quickstart
+
+Install from RubyGems `gem install fast-uuid` or add `gem "fast-uuid"` to your Gemfile & `bundle`.
+
+The require is `fast/uuid`, not `fast-uuid`. Requires Ruby `>= 3.3`.
 
 ```ruby
 require "fast/uuid"
 
-uuid = Fast::UUID.generate            # v7, the RFC's recommended default
-Fast::UUID.uuid_v4                    # => "b4c7b0f1-…", or uuid_v1 - uuid_v7. Returns a String just like SecureRandom
-Fast::UUID.parse(uuid.to_s) == uuid   # => true, from any conforming String, any case
-Fast::UUID.v4.version                 # => 4
-Fast::UUID.v7.timestamp               # => a UTC Time, the 48-bit unix_ts_ms
-Fast::UUID.v5(Fast::UUID::NAMESPACE_DNS, "www.example.com").to_s
-                                      # => "2ed6657d-e927-568b-95e1-2665a8aea6a2", same input, same UUID
+uuid = Fast::UUID.generate
+uuid.to_s
+# => "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"  # canonical lowercase 8-4-4-4-12, 36 chars, frozen (example)
 
-sorted = [Fast::UUID.v7, Fast::UUID.v7].sort  # v7 sorts chronologically, RFC 6.11
+uuid.version  # => 7
+uuid.variant  # => :rfc9562
+uuid.timestamp # => 2022-02-22 19:22:22 UTC  # current time as UTC Time at ms resolution (example)
+
+Fast::UUID.parse("017f22e2-79b0-7cc3-98c4-dc0c0c07398f")
+Fast::UUID.valid?("nope") # => false
+
+Fast::UUID::NIL < uuid && uuid < Fast::UUID::MAX # => true
 ```
 
-`Fast::UUID.parse` raises `Fast::UUID::ParseError` for anything the RFC
-4 grammar rejects and `TypeError` for an object with no `to_s`; `parse?`
-and `valid?` are the non-raising forms. Every version and variant
-parses, Nil and Max included.
+`Fast::UUID.generate` defaults to v7, the RFC's recommended default. `to_s` is the precomputed canonical lowercase form. `timestamp` returns a UTC `Time` for v1, v6, and v7 and `nil` for other versions. `valid?` answers `true`/`false` without raising. `NIL` and `MAX` bracket every UUID in opaque byte order.
 
-One caveat the RFC does not decide for you: opaque byte order makes v6 and
-v7 sort chronologically, but **v1 does not**. The
-[tutorial](docs/tutorials/generate-parse-and-sort-uuids.md) walks through the whole
-story: generate, parse, introspect, sort, and a request-ID module at the end
-of it.
+## Ordering caveat
 
-## Performance
-
-Measured on the six operations the gem and its references share — generation
-against `securerandom`, parsing against `uuidtools` (Ruby 4.0.7; conditions,
-the allocation columns and how to reproduce on the
-[benchmarks page](docs/explanation/benchmarks.md)):
-
-- Generation is **ahead of the stdlib String for v4, within 10% for v7** —
-  0.65M vs 0.64M i/s for v4, 0.58M vs 0.65M for v7, at half or fewer of the
-  objects — and the String forms win outright: `uuid_v4` 0.72M vs 0.64M with a
-  quarter of the objects, `uuid_v7` 0.64M vs 0.65M — parity — with two fifths.
-- Parsing is **2.7x faster than uuidtools with 4.5x fewer objects** — 1.14M vs
-  0.42M i/s, 6 objects per call against 27 — because it is a grammar check and
-  one `pack`, not a decoded field graph.
+Comparison is opaque unsigned 128-bit byte order. v6 and v7 sort chronologically as raw bytes. v1 does not — its `time_low` field sits first on the wire. See [How the versions and variants are laid out](docs/explanation/version-variant-layout.md) for the field order.
 
 ## Documentation
 
-### Tutorials
+- Tutorial:
+  - [Getting started with fast-uuid](docs/tutorials/getting-started.md)
+- How-to guides:
+  - [Replace SecureRandom UUID generation with fast-uuid](docs/how-to-guides/replace-securerandom.md)
+  - [Choose a UUID version](docs/how-to-guides/choose-a-uuid-version.md)
+  - [Validate and parse UUID strings from user input](docs/how-to-guides/validate-user-input.md)
+  - [Order, compare and key UUIDs](docs/how-to-guides/sort-and-compare.md)
+  - [Generate deterministic v3 and v5 UUIDs from names](docs/how-to-guides/name-based-uuids.md)
+- Reference:
+  - [Fast::UUID — API reference](docs/reference/fast-uuid.md)
+- Explanation:
+  - [Design decisions in fast-uuid](docs/explanation/design-decisions.md)
+  - [How the versions and variants are laid out](docs/explanation/version-variant-layout.md)
+  - [Performance and allocations](docs/explanation/performance.md)
 
-- [Tutorial: generate, parse and sort UUIDs](docs/tutorials/generate-parse-and-sort-uuids.md) — generate, parse, introspect and sort, ending in a sortable request ID.
+## Compatibility
 
-### How-to guides
+- Ruby `>= 3.3`.
+- Tested on 3.3, 3.4, and 4.0 in CI.
+- MIT license.
+- Source and changelog at [github.com/jetpks/fast-uuid](https://github.com/jetpks/fast-uuid).
 
-- [How to choose a UUID version](docs/how-to/choose-a-uuid-version.md) — v7 by default, v6 for a v1 fleet, v5 for name-derived determinism, v4 for randomness, v1 for legacy systems.
-- [How to generate deterministic UUIDs](docs/how-to/generate-deterministic-uuids.md) — pin a v7 to an exact millisecond with `v7(time:)`, pin a v1 or v6 to the 100-ns tick, or derive a stable v5 from a namespace and name.
-- [How to validate untrusted input](docs/how-to/validate-untrusted-input.md) — what `parse?` and `valid?` return, and what `parse` raises.
-- [How to sort UUIDs](docs/how-to/sort-uuids.md) — `<=>` byte order, and the v1 caveat.
-- [How to store a UUID as 16 bytes](docs/how-to/store-a-uuid-as-16-bytes.md) — `bytes` out, `new(bytes)` back.
-
-### Reference
-
-- [Reference: Fast::UUID](docs/reference/uuid.md) — every class method, instance method, constant and error.
-
-### Explanation
-
-- [What a UUID is, and what its versions are](docs/explanation/uuid-versions.md) — embedded time, natural sorting, name-derived determinism, and randomness as one option among five.
-- [Why validity is the grammar and nothing more](docs/explanation/validity.md) — why no version or variant gate: the RFC defines none, and Nil and Max sit outside the 10xx variant by design.
-- [In what order UUIDs sort](docs/explanation/comparison-order.md) — opaque bytes per RFC §6.11, v6/v7 chronological, v1 anti-chronological.
-- [Benchmarks](docs/explanation/benchmarks.md) — generation against securerandom, parsing against uuidtools, and how to reproduce them.
-
-## Development
-
-```bash
-bundle exec sus
-bundle exec rubocop
-bundle exec ruby benchmark/uuid.rb                 # full run, about a minute
-BENCH_QUICK=1 bundle exec ruby benchmark/uuid.rb   # quick run, seconds
-```
+Install and compatibility details are authoritative in [`fast-uuid.gemspec`](fast-uuid.gemspec) and [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
