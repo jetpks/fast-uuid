@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- Ruby 3.3 support dropped; the floor is now `>= 3.4`; CI matrix 3.4/4.0.
+
 ## 0.1.0
 
 - Initial release: `Fast::UUID`, one immutable, frozen value class. Generate
